@@ -67,6 +67,80 @@ class ZettlClient:
         """Check API health status."""
         return await self._request("get", "/health")
 
+    async def add_note(
+        self,
+        content: str,
+        tags: list[str] | None = None,
+        source: str = "agent",
+    ) -> dict[str, Any]:
+        """Add a note to the knowledge graph.
+
+        Args:
+            content: Note content text
+            tags: Optional list of tags
+            source: Note source (defaults to "agent" for MCP)
+
+        Returns:
+            Created note response from API
+        """
+        payload = {
+            "content": content,
+            "source": source,
+            "tags": tags or [],
+        }
+        return await self._request("post", "/notes", json=payload)
+
+    async def search(
+        self,
+        query: str,
+        search_type: str = "graph_completion",
+    ) -> dict[str, Any]:
+        """Search the knowledge graph.
+
+        Args:
+            query: Search query text
+            search_type: Type of search ("graph_completion" or "chunks")
+
+        Returns:
+            Search results from API
+        """
+        payload = {
+            "query": query,
+            "search_type": search_type,
+        }
+        return await self._request("post", "/search", json=payload)
+
+    async def generate_digest(self) -> dict[str, Any]:
+        """Generate weekly digest with topic suggestions.
+
+        Returns:
+            Digest response with summary and suggested topics
+        """
+        return await self._request("post", "/digest")
+
+    async def generate_content(
+        self,
+        topic: str,
+        source_chunks: list[str],
+        formats: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Generate content drafts for a topic.
+
+        Args:
+            topic: Content topic
+            source_chunks: Relevant knowledge chunks
+            formats: Output formats (blog, linkedin, x_thread, video_script)
+
+        Returns:
+            Generated content in requested formats
+        """
+        payload = {
+            "topic": topic,
+            "source_chunks": source_chunks,
+            "formats": formats or ["blog", "linkedin"],
+        }
+        return await self._request("post", "/digest/content", json=payload)
+
     async def close(self) -> None:
         """Close the HTTP client."""
         await self._http.aclose()
