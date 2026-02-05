@@ -59,3 +59,115 @@ async def test_health_check_server_error():
             await client.health_check()
 
         assert "Zettl API error" in str(exc_info.value)
+
+
+@pytest.mark.anyio
+async def test_add_note_success():
+    """Client sends note to API and returns response."""
+    client = ZettlClient(base_url="http://test:8000")
+
+    with patch.object(client._http, "post") as mock_post:
+        mock_response = MagicMock()
+        mock_response.status_code = 201
+        mock_response.json.return_value = {
+            "id": "note-123",
+            "content": "Test note",
+            "source": "agent",
+            "tags": ["test"],
+        }
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        result = await client.add_note(
+            content="Test note",
+            tags=["test"],
+            source="agent",
+        )
+
+        assert result["id"] == "note-123"
+        mock_post.assert_called_once()
+        call_kwargs = mock_post.call_args
+        assert call_kwargs[0][0] == "/notes"
+        assert call_kwargs[1]["json"]["content"] == "Test note"
+
+
+@pytest.mark.anyio
+async def test_search_success():
+    """Client searches knowledge graph and returns results."""
+    client = ZettlClient(base_url="http://test:8000")
+
+    with patch.object(client._http, "post") as mock_post:
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "results": ["Result 1", "Result 2"],
+            "query": "test query",
+        }
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        result = await client.search(
+            query="test query",
+            search_type="graph_completion",
+        )
+
+        assert result["results"] == ["Result 1", "Result 2"]
+        mock_post.assert_called_once()
+        call_kwargs = mock_post.call_args
+        assert call_kwargs[0][0] == "/search"
+        assert call_kwargs[1]["json"]["query"] == "test query"
+        assert call_kwargs[1]["json"]["search_type"] == "graph_completion"
+
+
+@pytest.mark.anyio
+async def test_generate_digest_success():
+    """Client generates weekly digest."""
+    client = ZettlClient(base_url="http://test:8000")
+
+    with patch.object(client._http, "post") as mock_post:
+        mock_response = MagicMock()
+        mock_response.status_code = 201
+        mock_response.json.return_value = {
+            "id": "digest-123",
+            "summary": "Weekly summary",
+            "suggested_topics": [
+                {"title": "Topic 1", "reasoning": "Because..."}
+            ],
+        }
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        result = await client.generate_digest()
+
+        assert result["summary"] == "Weekly summary"
+        assert len(result["suggested_topics"]) == 1
+        mock_post.assert_called_once_with("/digest")
+
+
+@pytest.mark.anyio
+async def test_generate_content_success():
+    """Client generates content in requested formats."""
+    client = ZettlClient(base_url="http://test:8000")
+
+    with patch.object(client._http, "post") as mock_post:
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "topic": "AI Testing",
+            "blog": "# Blog Post\n\nContent here...",
+            "linkedin": "Excited to share...",
+        }
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        result = await client.generate_content(
+            topic="AI Testing",
+            source_chunks=["chunk 1", "chunk 2"],
+            formats=["blog", "linkedin"],
+        )
+
+        assert result["topic"] == "AI Testing"
+        assert "blog" in result
+        assert "linkedin" in result
+        call_kwargs = mock_post.call_args
+        assert call_kwargs[0][0] == "/digest/content"
