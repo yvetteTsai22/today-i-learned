@@ -11,10 +11,10 @@ services:
     volumes:
       - neo4j_data:/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:7474"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:7474"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   api:
     build: ./api
@@ -28,6 +28,8 @@ services:
       - GRAPH_DATABASE_URL=bolt://neo4j:7687
       - GRAPH_DATABASE_USERNAME=neo4j
       - GRAPH_DATABASE_PASSWORD=zettlpassword123
+      - GOOGLE_APPLICATION_CREDENTIALS=/root/.config/gcloud/application_default_credentials.json
+      - GOOGLE_CLOUD_PROJECT=nexus-unmissable-develop
     env_file:
       - .env
     depends_on:
@@ -36,6 +38,16 @@ services:
     volumes:
       - ./api:/app
       - cognee_data:/app/cognee_data
+      - ~/.config/gcloud:/root/.config/gcloud:ro
+
+  ui:
+    build: ./ui
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - api
 
 volumes:
   neo4j_data:
