@@ -7,7 +7,8 @@ dependencies = [
     "fastapi>=0.109.0",
     "uvicorn[standard]>=0.27.0",
     "cognee[neo4j]>=0.1.26",
-    "litellm>=1.30.0",
+    "litellm[google]>=1.30.0",
+    "anthropic>=0.18.0",
     "pydantic>=2.6.0",
     "pydantic-settings>=2.1.0",
     "python-dotenv>=1.0.0",
@@ -24,6 +25,9 @@ dev = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
