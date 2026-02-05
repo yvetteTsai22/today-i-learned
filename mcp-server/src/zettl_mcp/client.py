@@ -6,6 +6,11 @@ from typing import Any
 import httpx
 
 
+class ZettlAPIError(Exception):
+    """Error communicating with Zettl API."""
+    pass
+
+
 class ZettlClient:
     """Async HTTP client for communicating with the Zettl API."""
 
@@ -24,18 +29,43 @@ class ZettlClient:
             timeout=30.0,
         )
 
-    async def health_check(self) -> dict[str, Any]:
-        """Check API health status.
+    async def _request(
+        self,
+        method: str,
+        path: str,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Make HTTP request with error handling.
+
+        Args:
+            method: HTTP method (get, post, etc.)
+            path: API endpoint path
+            **kwargs: Additional arguments for httpx request
 
         Returns:
-            Health status dict from API.
+            Parsed JSON response
 
         Raises:
-            ZettlAPIError: If API request fails.
+            ZettlAPIError: If request fails
         """
-        response = await self._http.get("/health")
-        response.raise_for_status()
-        return response.json()
+        try:
+            request_method = getattr(self._http, method)
+            response = await request_method(path, **kwargs)
+            response.raise_for_status()
+            return response.json()
+        except httpx.ConnectError:
+            raise ZettlAPIError(f"Cannot reach Zettl API at {self.base_url}")
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code >= 500:
+                raise ZettlAPIError(f"Zettl API error: {e.response.status_code}")
+            # Re-raise 4xx for validation errors
+            raise ZettlAPIError(f"Request failed: {e.response.text}")
+        except httpx.TimeoutException:
+            raise ZettlAPIError(f"Zettl API timeout after 30s")
+
+    async def health_check(self) -> dict[str, Any]:
+        """Check API health status."""
+        return await self._request("get", "/health")
 
     async def close(self) -> None:
         """Close the HTTP client."""
