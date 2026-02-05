@@ -1,4 +1,6 @@
 import { CaptureForm } from '@/components/capture-form';
+import Link from 'next/link';
+import { Search } from 'lucide-react';
 
 export default function CapturePage() {
   return (
@@ -11,6 +13,16 @@ export default function CapturePage() {
           Capture your knowledge. Let the connections emerge.
         </p>
         <CaptureForm />
+
+        <div className="mt-8 text-center">
+          <Link
+            href="/search"
+            className="inline-flex items-center gap-2 text-teal-600 hover:text-teal-700 transition-colors"
+          >
+            <Search className="h-4 w-4" />
+            Search your notes
+          </Link>
+        </div>
       </div>
     </main>
   );
