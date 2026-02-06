@@ -30,6 +30,10 @@ services:
       - GRAPH_DATABASE_PASSWORD=zettlpassword123
       - GOOGLE_APPLICATION_CREDENTIALS=/root/.config/gcloud/application_default_credentials.json
       - GOOGLE_CLOUD_PROJECT=nexus-unmissable-develop
+      # Cognee storage directories - point to persistent volume
+      - DATA_ROOT_DIRECTORY=/app/cognee_data/data
+      - SYSTEM_ROOT_DIRECTORY=/app/cognee_data/system
+      - CACHE_ROOT_DIRECTORY=/app/cognee_data/cache
     env_file:
       - .env
     depends_on:
