@@ -65,3 +65,69 @@ export async function searchNotes(request: SearchRequest): Promise<SearchRespons
 
   return response.json();
 }
+
+// Digest types and API functions
+
+export interface TopicSuggestion {
+  title: string;
+  reasoning: string;
+  relevant_chunks: string[];
+}
+
+export interface DigestResponse {
+  id: string;
+  summary: string;
+  suggested_topics: TopicSuggestion[];
+  week_start: string;
+  week_end: string;
+  created_at: string;
+}
+
+export type ContentFormat = 'blog' | 'linkedin' | 'x_thread' | 'video_script';
+
+export interface ContentGenerationRequest {
+  topic: string;
+  source_chunks: string[];
+  formats: ContentFormat[];
+}
+
+export interface ContentGenerationResponse {
+  topic: string;
+  blog: string | null;
+  linkedin: string | null;
+  x_thread: string | null;
+  video_script: string | null;
+}
+
+export async function generateDigest(): Promise<DigestResponse> {
+  const response = await fetch(`${API_URL}/digest`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to generate digest: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function generateContent(
+  request: ContentGenerationRequest
+): Promise<ContentGenerationResponse> {
+  const response = await fetch(`${API_URL}/digest/content`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to generate content: ${response.statusText}`);
+  }
+
+  return response.json();
+}
