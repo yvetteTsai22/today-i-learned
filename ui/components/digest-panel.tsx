@@ -111,7 +111,7 @@ function TopicCard({ topic, onGenerateContent }: TopicCardProps) {
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
-            <CardTitle className="text-lg text-teal-900">{topic.title}</CardTitle>
+            <CardTitle className="text-lg text-foreground">{topic.title}</CardTitle>
             <CardDescription className="mt-1">{topic.reasoning}</CardDescription>
           </div>
           <Button
@@ -133,14 +133,14 @@ function TopicCard({ topic, onGenerateContent }: TopicCardProps) {
         <CardContent className="space-y-4">
           {topic.relevant_chunks.length > 0 && (
             <div>
-              <p className="text-sm font-medium text-teal-800 mb-2">
+              <p className="text-sm font-medium text-foreground mb-2">
                 Related Knowledge ({topic.relevant_chunks.length} chunks)
               </p>
               <div className="space-y-2 max-h-40 overflow-y-auto">
                 {topic.relevant_chunks.map((chunk, idx) => (
                   <p
                     key={idx}
-                    className="text-sm text-slate-600 bg-slate-50 p-2 rounded border-l-2 border-teal-300"
+                    className="text-sm text-muted-foreground bg-muted p-2 rounded border-l-2 border-primary"
                   >
                     {chunk}
                   </p>
@@ -150,7 +150,7 @@ function TopicCard({ topic, onGenerateContent }: TopicCardProps) {
           )}
 
           <div>
-            <p className="text-sm font-medium text-teal-800 mb-2">
+            <p className="text-sm font-medium text-foreground mb-2">
               Generate Content
             </p>
             <div className="flex flex-wrap gap-2 mb-3">
@@ -169,7 +169,7 @@ function TopicCard({ topic, onGenerateContent }: TopicCardProps) {
             <Button
               onClick={handleGenerate}
               disabled={selectedFormats.length === 0 || isGenerating}
-              className="w-full bg-teal-600 hover:bg-teal-700 cursor-pointer"
+              className="w-full cursor-pointer"
             >
               {isGenerating ? (
                 <>
@@ -194,7 +194,7 @@ function TopicCard({ topic, onGenerateContent }: TopicCardProps) {
                 return (
                   <div key={format} className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-sm font-medium text-teal-800">
+                      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                         {FORMAT_CONFIG[format].icon}
                         {FORMAT_CONFIG[format].label}
                       </div>
@@ -211,7 +211,7 @@ function TopicCard({ topic, onGenerateContent }: TopicCardProps) {
                         )}
                       </Button>
                     </div>
-                    <div className="bg-white border rounded-lg p-4 text-sm whitespace-pre-wrap max-h-60 overflow-y-auto">
+                    <div className="bg-card border rounded-lg p-4 text-sm whitespace-pre-wrap max-h-60 overflow-y-auto">
                       {content}
                     </div>
                   </div>
@@ -264,24 +264,24 @@ export function DigestPanel() {
   return (
     <div className="space-y-6">
       {!digest ? (
-        <Card className="border-dashed border-2 border-teal-200 bg-teal-50/50">
+        <Card className="border-dashed border-2 border-border bg-muted/50">
           <CardContent className="py-12">
             <div className="text-center space-y-4">
-              <div className="mx-auto w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center">
-                <Sparkles className="h-6 w-6 text-teal-600" />
+              <div className="mx-auto w-12 h-12 rounded-full bg-accent flex items-center justify-center">
+                <Sparkles className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-teal-900">
+                <h3 className="text-lg font-semibold text-foreground">
                   Weekly Digest
                 </h3>
-                <p className="text-sm text-teal-600 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   Generate a summary of your knowledge from the past week
                 </p>
               </div>
               <Button
                 onClick={handleGenerateDigest}
                 disabled={isLoading}
-                className="bg-teal-600 hover:bg-teal-700 cursor-pointer"
+                className="cursor-pointer"
               >
                 {isLoading ? (
                   <>
@@ -296,7 +296,7 @@ export function DigestPanel() {
                 )}
               </Button>
               {error && (
-                <p className="text-sm text-red-600 mt-2">{error}</p>
+                <p className="text-sm text-destructive mt-2">{error}</p>
               )}
             </div>
           </CardContent>
@@ -307,7 +307,7 @@ export function DigestPanel() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-xl text-teal-900">
+                  <CardTitle className="text-xl text-foreground">
                     Weekly Summary
                   </CardTitle>
                   <CardDescription className="flex items-center gap-1 mt-1">
@@ -331,12 +331,12 @@ export function DigestPanel() {
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-slate-700 leading-relaxed">{digest.summary}</p>
+              <p className="text-muted-foreground leading-relaxed">{digest.summary}</p>
             </CardContent>
           </Card>
 
           <div>
-            <h3 className="text-lg font-semibold text-teal-900 mb-4">
+            <h3 className="text-lg font-semibold text-foreground mb-4">
               Suggested Topics ({digest.suggested_topics.length})
             </h3>
             <div className="space-y-4">
