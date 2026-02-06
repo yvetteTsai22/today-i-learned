@@ -1,12 +1,12 @@
 import { CaptureForm } from '@/components/capture-form';
 import Link from 'next/link';
-import { Search } from 'lucide-react';
+import { Search, Sparkles } from 'lucide-react';
 
 export default function CapturePage() {
   return (
     <main className="min-h-screen bg-teal-50 py-12 px-4">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-teal-900 text-center mb-8">
+        <h1 className="text-3xl font-bold text-teal-900 text-center mb-2">
           Zettl
         </h1>
         <p className="text-teal-700 text-center mb-8">
@@ -14,13 +14,20 @@ export default function CapturePage() {
         </p>
         <CaptureForm />
 
-        <div className="mt-8 text-center">
+        <div className="mt-8 flex justify-center gap-6">
           <Link
             href="/search"
             className="inline-flex items-center gap-2 text-teal-600 hover:text-teal-700 transition-colors"
           >
             <Search className="h-4 w-4" />
-            Search your notes
+            Search notes
+          </Link>
+          <Link
+            href="/digest"
+            className="inline-flex items-center gap-2 text-teal-600 hover:text-teal-700 transition-colors"
+          >
+            <Sparkles className="h-4 w-4" />
+            Weekly digest
           </Link>
         </div>
       </div>
