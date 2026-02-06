@@ -59,7 +59,7 @@ export function SearchForm() {
     <div className="w-full max-w-2xl mx-auto space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-teal-900">Search Notes</CardTitle>
+          <CardTitle className="text-foreground">Search Notes</CardTitle>
         </CardHeader>
         <form onSubmit={handleSearch}>
           <CardContent className="space-y-4">
@@ -70,7 +70,7 @@ export function SearchForm() {
                 placeholder="Search your knowledge..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-input bg-background rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 disabled={isSearching}
               />
             </div>
@@ -83,7 +83,7 @@ export function SearchForm() {
                   onClick={() => setSearchType('graph_completion')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors cursor-pointer ${
                     searchType === 'graph_completion'
-                      ? 'bg-teal-600 text-white'
+                      ? 'bg-primary text-primary-foreground'
                       : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
                   }`}
                 >
@@ -95,7 +95,7 @@ export function SearchForm() {
                   onClick={() => setSearchType('chunks')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors cursor-pointer ${
                     searchType === 'chunks'
-                      ? 'bg-teal-600 text-white'
+                      ? 'bg-primary text-primary-foreground'
                       : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
                   }`}
                 >
@@ -108,7 +108,7 @@ export function SearchForm() {
             <Button
               type="submit"
               disabled={!query.trim() || isSearching}
-              className="w-full bg-teal-600 hover:bg-teal-700 cursor-pointer"
+              className="w-full cursor-pointer"
             >
               {isSearching ? (
                 <>
@@ -129,7 +129,7 @@ export function SearchForm() {
       {hasSearched && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-medium text-teal-900">
+            <h2 className="text-lg font-medium text-foreground">
               Results {results.length > 0 && `(${results.length})`}
             </h2>
             {results.length > 0 && (
