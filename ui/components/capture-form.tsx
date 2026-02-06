@@ -58,7 +58,7 @@ export function CaptureForm() {
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle className="text-teal-900">Quick Capture</CardTitle>
+        <CardTitle className="text-foreground">Quick Capture</CardTitle>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
@@ -77,7 +77,7 @@ export function CaptureForm() {
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={handleAddTag}
-              className="w-full px-3 py-2 border rounded-md text-sm"
+              className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               disabled={isSubmitting}
             />
             <div className="flex flex-wrap gap-2">
@@ -109,7 +109,6 @@ export function CaptureForm() {
           <Button
             type="submit"
             disabled={!content.trim() || isSubmitting}
-            className="bg-teal-600 hover:bg-teal-700"
           >
             {isSubmitting ? 'Saving...' : 'Save'}
           </Button>
