@@ -1,12 +1,12 @@
 # Zettl MCP Server Roadmap
 
-## Phase 1: Tools (Current)
+## Phase 1: Tools (Complete)
 - [x] Project scaffolding
-- [ ] HTTP client for Zettl API
-- [ ] add_note tool
-- [ ] search_knowledge tool
-- [ ] generate_digest tool
-- [ ] generate_content tool
+- [x] HTTP client for Zettl API
+- [x] add_note tool
+- [x] search_knowledge tool
+- [x] generate_digest tool
+- [x] generate_content tool
 
 ## Phase 2: Resources
 - [ ] zettl://health — API health status
