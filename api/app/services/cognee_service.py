@@ -2,6 +2,16 @@ import cognee
 from cognee.modules.search.types import SearchType
 from datetime import datetime
 import uuid
+import re
+from typing import Any, TypedDict
+
+
+class ChunkResult(TypedDict):
+    id: str
+    content: str
+    source: str
+    tags: list[str]
+    created_at: str
 
 
 class CogneeService:
@@ -37,12 +47,76 @@ class CogneeService:
 
         return note_id
 
+    def _parse_chunk_result(self, chunk: Any) -> ChunkResult:
+        """Parse a Cognee chunk result into structured data."""
+        # Handle different result types from Cognee
+        text = ""
+        chunk_id = ""
+        created_at = ""
+
+        if hasattr(chunk, "text"):
+            text = chunk.text
+        elif hasattr(chunk, "content"):
+            text = chunk.content
+        elif isinstance(chunk, dict):
+            text = chunk.get("text", chunk.get("content", str(chunk)))
+            chunk_id = chunk.get("id", "")
+            created_at = chunk.get("created_at", "")
+        else:
+            text = str(chunk)
+
+        if hasattr(chunk, "id"):
+            chunk_id = str(chunk.id)
+        if hasattr(chunk, "created_at"):
+            # Handle Unix timestamp (ms)
+            ts = chunk.created_at
+            if isinstance(ts, (int, float)):
+                created_at = datetime.fromtimestamp(ts / 1000).isoformat()
+            else:
+                created_at = str(ts)
+
+        # Parse metadata from content prefix: [source: ui | tags: tag1,tag2 | created_at: ...]
+        source = "manual"
+        tags: list[str] = []
+        content = text
+
+        meta_match = re.match(r"^\[([^\]]+)\]\n?", text)
+        if meta_match:
+            meta_str = meta_match.group(1)
+            content = text[meta_match.end():]
+
+            # Parse source
+            source_match = re.search(r"source:\s*(\w+)", meta_str)
+            if source_match:
+                source = source_match.group(1)
+
+            # Parse tags
+            tags_match = re.search(r"tags:\s*([^|]*)", meta_str)
+            if tags_match:
+                tags_str = tags_match.group(1).strip()
+                if tags_str:
+                    tags = [t.strip() for t in tags_str.split(",") if t.strip()]
+
+            # Parse created_at from metadata if not from chunk
+            if not created_at:
+                created_match = re.search(r"created_at:\s*([^\s|]+)", meta_str)
+                if created_match:
+                    created_at = created_match.group(1)
+
+        return ChunkResult(
+            id=chunk_id or str(uuid.uuid4()),
+            content=content.strip(),
+            source=source,
+            tags=tags,
+            created_at=created_at or datetime.now().isoformat(),
+        )
+
     async def search(
         self,
         query: str,
         dataset_name: str | None = None,
         search_type: str = "graph_completion"
-    ) -> list[str]:
+    ) -> list[ChunkResult]:
         """
         Search the knowledge graph.
 
@@ -62,7 +136,7 @@ class CogneeService:
                 query_text=query
             )
 
-        return [str(r) for r in results]
+        return [self._parse_chunk_result(r) for r in results]
 
     async def get_notes_in_range(
         self,
