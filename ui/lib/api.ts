@@ -42,8 +42,16 @@ export interface SearchRequest {
   search_type?: SearchType;
 }
 
+export interface SearchResultItem {
+  id: string;
+  content: string;
+  source: 'manual' | 'notion' | 'agent' | 'ui';
+  tags: string[];
+  created_at: string;
+}
+
 export interface SearchResponse {
-  results: string[];
+  results: SearchResultItem[];
   query: string;
 }
 
