@@ -5,18 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { searchNotes, SearchType } from '@/lib/api';
+import { searchNotes, SearchType, SearchResultItem } from '@/lib/api';
 import { Search, Sparkles, FileText, Loader2 } from 'lucide-react';
-
-interface SearchResult {
-  content: string;
-  index: number;
-}
+import { NoteCard } from '@/components/note-card';
 
 export function SearchForm() {
   const [query, setQuery] = useState('');
   const [searchType, setSearchType] = useState<SearchType>('graph_completion');
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const [results, setResults] = useState<SearchResultItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
@@ -33,12 +29,7 @@ export function SearchForm() {
         search_type: searchType,
       });
 
-      setResults(
-        response.results.map((content, index) => ({
-          content,
-          index,
-        }))
-      );
+      setResults(response.results);
 
       if (response.results.length === 0) {
         toast.info('No results found', {
@@ -150,13 +141,17 @@ export function SearchForm() {
           ) : (
             <div className="space-y-3">
               {results.map((result) => (
-                <Card key={result.index} className="hover:shadow-md transition-shadow cursor-pointer">
-                  <CardContent className="py-4">
-                    <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
-                      {result.content}
-                    </p>
-                  </CardContent>
-                </Card>
+                <NoteCard
+                  key={result.id}
+                  note={{
+                    id: result.id,
+                    content: result.content,
+                    source: result.source,
+                    tags: result.tags,
+                    created_at: result.created_at,
+                    updated_at: result.created_at, // Use created_at as fallback
+                  }}
+                />
               ))}
             </div>
           )}
