@@ -18,8 +18,16 @@ class SearchRequest(BaseModel):
     search_type: str = Field(default="graph_completion")
 
 
+class SearchResultItem(BaseModel):
+    id: str
+    content: str
+    source: str
+    tags: list[str]
+    created_at: str
+
+
 class SearchResponse(BaseModel):
-    results: list[str]
+    results: list[SearchResultItem]
     query: str
 
 
@@ -70,10 +78,11 @@ async def search_notes(
     Search the knowledge graph.
     """
     try:
-        results = await cognee_service.search(
+        chunk_results = await cognee_service.search(
             query=request.query,
             search_type=request.search_type
         )
+        results = [SearchResultItem(**chunk) for chunk in chunk_results]
         return SearchResponse(results=results, query=request.query)
     except Exception as e:
         raise HTTPException(
