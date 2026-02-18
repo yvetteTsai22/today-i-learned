@@ -75,6 +75,11 @@ app.dependency_overrides[get_cognee_service] = lambda: mock_cognee_service
 
 **Content Formats**: Each format has a dedicated generation method with specific structure templates (e.g., blog: Hook → Context → Insight → Examples → Takeaway).
 
+## Git Conventions
+
+- Do NOT append `Co-Authored-By` lines to commit messages
+- Use emoji prefixes from `~/.gitmessage` (e.g., `✨feat:`, `🐛fix:`, `📝doc:`, `🔧build:`)
+
 ## Environment Configuration
 
 Copy `zettl/.env.example` to `zettl/.env`. Key variables:
