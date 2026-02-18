@@ -103,6 +103,12 @@ class CogneeService:
                 if created_match:
                     created_at = created_match.group(1)
 
+        # Normalize created_at: int/float timestamps (ms) → ISO string
+        if isinstance(created_at, (int, float)):
+            created_at = datetime.fromtimestamp(created_at / 1000).isoformat()
+        elif created_at:
+            created_at = str(created_at)
+
         return ChunkResult(
             id=chunk_id or str(uuid.uuid4()),
             content=content.strip(),
