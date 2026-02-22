@@ -6,6 +6,7 @@ from app.models.digest import DigestResponse, TopicSuggestion
 from app.models.content import ContentFormat, ContentGenerationRequest, ContentGenerationResponse
 from app.services.cognee_service import CogneeService
 from app.services.llm_service import LLMService
+from app.services.digest_cache_service import DigestCacheService
 
 router = APIRouter()
 
@@ -20,17 +21,34 @@ def get_llm_service() -> LLMService:
     return LLMService()
 
 
+def get_digest_cache_service() -> DigestCacheService:
+    """Dependency for DigestCacheService."""
+    return DigestCacheService()
+
+
 @router.post("/digest", response_model=DigestResponse, status_code=status.HTTP_201_CREATED)
 async def create_digest(
+    force_refresh: bool = False,
     cognee_service: CogneeService = Depends(get_cognee_service),
-    llm_service: LLMService = Depends(get_llm_service)
+    llm_service: LLMService = Depends(get_llm_service),
+    cache_service: DigestCacheService = Depends(get_digest_cache_service),
 ):
     """
     Generate a weekly digest from recent knowledge.
+    Returns cached result if available for the current calendar week.
     """
     try:
+        now = datetime.now()
+        year, week, _ = now.isocalendar()
+
+        # Check cache (unless force refresh requested)
+        if not force_refresh:
+            cached = await cache_service.get_cached_digest(year, week)
+            if cached is not None:
+                return cached
+
         # Calculate date range (last 7 days)
-        end_date = datetime.now()
+        end_date = now
         start_date = end_date - timedelta(days=7)
         date_range = f"{start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
 
@@ -41,14 +59,13 @@ async def create_digest(
         )
 
         if not chunks:
-            # If no chunks, return empty digest
             return DigestResponse(
                 id=str(uuid.uuid4()),
                 summary="No new knowledge added this week.",
                 suggested_topics=[],
                 week_start=start_date,
                 week_end=end_date,
-                created_at=datetime.now(),
+                created_at=now,
             )
 
         # Generate digest summary with LLM
@@ -67,14 +84,19 @@ async def create_digest(
             for t in digest_data.get("topics", [])
         ]
 
-        return DigestResponse(
+        response = DigestResponse(
             id=str(uuid.uuid4()),
             summary=digest_data.get("summary", ""),
             suggested_topics=topics,
             week_start=start_date,
             week_end=end_date,
-            created_at=datetime.now(),
+            created_at=now,
         )
+
+        # Store in cache
+        await cache_service.store_digest(year, week, response)
+
+        return response
 
     except Exception as e:
         raise HTTPException(
