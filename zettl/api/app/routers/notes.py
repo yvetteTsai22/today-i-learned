@@ -4,6 +4,7 @@ from datetime import datetime
 
 from app.models.note import NoteCreate, NoteResponse, NoteSource
 from app.services.cognee_service import CogneeService
+from app.services.digest_cache_service import DigestCacheService
 
 router = APIRouter()
 
@@ -11,6 +12,11 @@ router = APIRouter()
 def get_cognee_service() -> CogneeService:
     """Dependency for CogneeService - enables easy mocking in tests."""
     return CogneeService()
+
+
+def get_digest_cache_service() -> DigestCacheService:
+    """Dependency for DigestCacheService."""
+    return DigestCacheService()
 
 
 class SearchRequest(BaseModel):
@@ -34,7 +40,8 @@ class SearchResponse(BaseModel):
 @router.post("/notes", response_model=NoteResponse, status_code=status.HTTP_201_CREATED)
 async def create_note(
     note: NoteCreate,
-    cognee_service: CogneeService = Depends(get_cognee_service)
+    cognee_service: CogneeService = Depends(get_cognee_service),
+    cache_service: DigestCacheService = Depends(get_digest_cache_service),
 ):
     """
     Create a new note and process it into the knowledge graph.
@@ -52,6 +59,9 @@ async def create_note(
             content=note.content,
             metadata=metadata
         )
+
+        # Invalidate cached digest since new knowledge was added
+        await cache_service.invalidate_current_week()
 
         now = datetime.now()
         return NoteResponse(

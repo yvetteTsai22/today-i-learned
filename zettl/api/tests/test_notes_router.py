@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock, MagicMock
 
 from app.main import app
-from app.routers.notes import get_cognee_service
+from app.routers.notes import get_cognee_service, get_digest_cache_service
 
 
 @pytest.fixture
@@ -11,14 +11,25 @@ def mock_cognee_service():
     """Create a mock CogneeService."""
     mock = MagicMock()
     mock.add_note = AsyncMock(return_value="note-123")
-    mock.search = AsyncMock(return_value=["result1"])
+    mock.search = AsyncMock(return_value=[
+        {"id": "r1", "content": "result text", "source": "manual", "tags": [], "created_at": "2026-02-18T12:00:00"}
+    ])
     return mock
 
 
 @pytest.fixture
-def client(mock_cognee_service):
+def mock_cache_service():
+    """Create a mock DigestCacheService."""
+    mock = MagicMock()
+    mock.invalidate_current_week = AsyncMock()
+    return mock
+
+
+@pytest.fixture
+def client(mock_cognee_service, mock_cache_service):
     """Create test client with mocked CogneeService."""
     app.dependency_overrides[get_cognee_service] = lambda: mock_cognee_service
+    app.dependency_overrides[get_digest_cache_service] = lambda: mock_cache_service
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
@@ -57,3 +68,12 @@ def test_search_notes(client):
     assert response.status_code == 200
     data = response.json()
     assert "results" in data
+
+
+def test_create_note_invalidates_digest_cache(client, mock_cache_service):
+    response = client.post(
+        "/notes",
+        json={"content": "New learning about caching"}
+    )
+    assert response.status_code == 201
+    mock_cache_service.invalidate_current_week.assert_called_once()
