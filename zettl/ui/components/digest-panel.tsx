@@ -230,11 +230,11 @@ export function DigestPanel() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleGenerateDigest = async () => {
+  const handleGenerateDigest = async (forceRefresh: boolean = false) => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await generateDigest();
+      const data = await generateDigest(forceRefresh);
       setDigest(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate digest');
@@ -279,7 +279,7 @@ export function DigestPanel() {
                 </p>
               </div>
               <Button
-                onClick={handleGenerateDigest}
+                onClick={() => handleGenerateDigest()}
                 disabled={isLoading}
                 className="cursor-pointer"
               >
@@ -318,7 +318,7 @@ export function DigestPanel() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleGenerateDigest}
+                  onClick={() => handleGenerateDigest(true)}
                   disabled={isLoading}
                   className="cursor-pointer"
                 >
