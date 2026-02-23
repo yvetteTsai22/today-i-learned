@@ -204,14 +204,16 @@ zettl/
 - Local Docker setup
 - Neo4j + Cognee integration
 
-### Excluded (Later Phases)
+### Excluded from MVP (Later Phases)
 - Notion sync
-- Real-time graph visualization
+- ~~Real-time graph visualization~~ → Planned as dashboard widget (see [UI Design Vision](2026-02-23-ui-design-vision.md))
 - Scheduled digests (cron)
-- Content editing in UI
-- Full dashboard
+- ~~Content editing in UI~~ → Planned as note edit/delete (see [UI Design Vision](2026-02-23-ui-design-vision.md))
+- ~~Full dashboard~~ → Planned with command palette navigation (see [UI Design Vision](2026-02-23-ui-design-vision.md))
 - GCP Terraform
-- Agent API authentication
+- ~~Agent API authentication~~ → Planned as API key auth for browser extension + mobile shortcut
+- Browser extension (Chrome/Firefox) — new
+- Mobile capture shortcut (iOS/Android) — new
 
 ## MVP User Flow
 
