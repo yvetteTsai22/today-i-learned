@@ -35,6 +35,39 @@ export async function createNote(note: NoteCreate): Promise<NoteResponse> {
   return response.json();
 }
 
+// Note management
+
+export interface NoteUpdate {
+  content: string;
+  tags?: string[];
+}
+
+export async function updateNote(id: string, update: NoteUpdate): Promise<NoteResponse> {
+  const response = await fetch(`${API_URL}/notes/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(update),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to update note: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function deleteNote(id: string): Promise<void> {
+  const response = await fetch(`${API_URL}/notes/${id}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to delete note: ${response.statusText}`);
+  }
+}
+
 export type SearchType = 'graph_completion' | 'chunks';
 
 export interface SearchRequest {
