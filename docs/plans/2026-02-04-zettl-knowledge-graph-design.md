@@ -214,6 +214,7 @@ zettl/
 - ~~Agent API authentication~~ → Planned as API key auth for browser extension + mobile shortcut
 - Browser extension (Chrome/Firefox) — new
 - Mobile capture shortcut (iOS/Android) — new
+- User management (auth, profiles, multi-tenant) — new
 
 ## MVP User Flow
 
