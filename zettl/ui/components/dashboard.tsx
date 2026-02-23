@@ -12,6 +12,7 @@ import {
   TrendingUp,
 } from "lucide-react"
 import { fetchStats, type StatsResponse } from "@/lib/api"
+import { KnowledgeGraph } from "@/components/knowledge-graph"
 
 function StatCard({
   label,
@@ -126,16 +127,12 @@ export function Dashboard() {
         </div>
       </section>
 
-      {/* Graph placeholder */}
+      {/* Knowledge Graph */}
       <section>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
           Knowledge Graph
         </h2>
-        <div className="rounded-xl border bg-card p-8 text-center min-h-[300px] flex items-center justify-center">
-          <p className="text-sm text-muted-foreground">
-            Interactive knowledge graph will appear here once the /graph endpoint is implemented.
-          </p>
-        </div>
+        <KnowledgeGraph />
       </section>
     </div>
   )
