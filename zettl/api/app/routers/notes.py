@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from datetime import datetime
 
-from app.models.note import NoteCreate, NoteResponse, NoteSource
+from app.models.note import NoteCreate, NoteResponse, NoteSource, NoteUpdate
 from app.services.cognee_service import CogneeService
 from app.services.digest_cache_service import DigestCacheService
 
@@ -98,4 +98,61 @@ async def search_notes(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Search failed: {str(e)}"
+        )
+
+
+@router.put("/notes/{note_id}", response_model=NoteResponse)
+async def update_note(
+    note_id: str,
+    update: NoteUpdate,
+    cognee_service: CogneeService = Depends(get_cognee_service),
+    cache_service: DigestCacheService = Depends(get_digest_cache_service),
+):
+    """Update an existing note's content and tags."""
+    try:
+        metadata = {
+            "source": "ui",
+            "tags": ",".join(update.tags) if update.tags else "",
+            "created_at": datetime.now().isoformat(),
+        }
+
+        await cognee_service.update_note(
+            note_id=note_id,
+            content=update.content,
+            metadata=metadata,
+        )
+
+        # Invalidate digest cache
+        await cache_service.invalidate_current_week()
+
+        now = datetime.now()
+        return NoteResponse(
+            id=note_id,
+            content=update.content,
+            source=NoteSource.UI,
+            tags=update.tags,
+            created_at=now,
+            updated_at=now,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update note: {str(e)}",
+        )
+
+
+@router.delete("/notes/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_note(
+    note_id: str,
+    cognee_service: CogneeService = Depends(get_cognee_service),
+    cache_service: DigestCacheService = Depends(get_digest_cache_service),
+):
+    """Delete a note from the knowledge graph."""
+    try:
+        await cognee_service.delete_note(note_id=note_id)
+        await cache_service.invalidate_current_week()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete note: {str(e)}",
         )
