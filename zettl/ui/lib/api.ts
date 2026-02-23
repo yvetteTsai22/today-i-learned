@@ -107,8 +107,11 @@ export interface ContentGenerationResponse {
   video_script: string | null;
 }
 
-export async function generateDigest(): Promise<DigestResponse> {
-  const response = await fetch(`${API_URL}/digest`, {
+export async function generateDigest(
+  forceRefresh: boolean = false
+): Promise<DigestResponse> {
+  const params = forceRefresh ? '?force_refresh=true' : '';
+  const response = await fetch(`${API_URL}/digest${params}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
