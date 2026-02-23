@@ -71,11 +71,15 @@ async def search_knowledge(
 
 
 @mcp.tool()
-async def generate_digest() -> str:
-    """Generate a weekly digest with topic suggestions from your recent knowledge."""
+async def generate_digest(force_refresh: bool = False) -> str:
+    """Generate a weekly digest with topic suggestions from your recent knowledge.
+
+    Args:
+        force_refresh: Bypass the weekly cache and regenerate from scratch
+    """
     client = get_client()
     try:
-        result = await client.generate_digest()
+        result = await client.generate_digest(force_refresh=force_refresh)
 
         # Format the digest nicely
         output = ["## Weekly Digest\n"]
