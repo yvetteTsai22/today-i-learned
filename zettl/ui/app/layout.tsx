@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
+import { TopBar } from "@/components/top-bar";
+import { CommandPalette } from "@/components/command-palette";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -28,7 +30,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <TopBar />
+          <CommandPalette />
+          <main className="pt-14">
+            {children}
+          </main>
           <Toaster />
         </ThemeProvider>
       </body>
