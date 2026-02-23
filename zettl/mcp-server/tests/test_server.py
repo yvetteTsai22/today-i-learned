@@ -111,6 +111,29 @@ async def test_generate_digest_tool():
 
 
 @pytest.mark.anyio
+async def test_generate_digest_force_refresh():
+    """generate_digest tool passes force_refresh to client."""
+    mock_client = AsyncMock()
+    mock_client.generate_digest.return_value = {
+        "id": "digest-456",
+        "summary": "Fresh digest after force refresh.",
+        "suggested_topics": [],
+    }
+
+    with patch("zettl_mcp.server.get_client", return_value=mock_client):
+        async with create_connected_server_and_client_session(mcp._mcp_server) as session:
+            result = await session.call_tool("generate_digest", {
+                "force_refresh": True,
+            })
+
+            text = result.content[0].text
+            assert "Fresh digest" in text
+            mock_client.generate_digest.assert_called_once_with(
+                force_refresh=True
+            )
+
+
+@pytest.mark.anyio
 async def test_generate_content_tool():
     """generate_content tool returns formatted content drafts."""
     mock_client = AsyncMock()
