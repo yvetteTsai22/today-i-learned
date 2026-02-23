@@ -18,6 +18,23 @@ class StatsResponse(BaseModel):
     this_week: int
 
 
+class GraphNode(BaseModel):
+    id: str
+    label: str
+    content: str
+
+
+class GraphEdge(BaseModel):
+    source: str
+    target: str
+    type: str
+
+
+class GraphResponse(BaseModel):
+    nodes: list[GraphNode]
+    edges: list[GraphEdge]
+
+
 @router.get("/stats", response_model=StatsResponse)
 async def get_stats(
     stats_service: StatsService = Depends(get_stats_service),
@@ -29,4 +46,18 @@ async def get_stats(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to fetch stats: {str(e)}",
+        )
+
+
+@router.get("/graph", response_model=GraphResponse)
+async def get_graph(
+    stats_service: StatsService = Depends(get_stats_service),
+):
+    """Return nodes and edges for knowledge graph visualization."""
+    try:
+        return await stats_service.get_graph()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch graph: {str(e)}",
         )

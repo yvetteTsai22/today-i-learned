@@ -58,3 +58,41 @@ class StatsService:
             "connections": connections,
             "this_week": this_week,
         }
+
+    async def get_graph(self) -> dict:
+        """Return all nodes and relationships for graph visualization."""
+        async with self._driver.session() as session:
+            # Get all nodes (limit to prevent overwhelming the UI)
+            node_result = await session.run(
+                "MATCH (n) "
+                "WHERE NOT n:CachedDigest "
+                "RETURN elementId(n) AS id, labels(n)[0] AS label, "
+                "       coalesce(n.text, n.name, n.content, '') AS content "
+                "LIMIT 200"
+            )
+            nodes = [
+                {
+                    "id": record["id"],
+                    "label": record["label"],
+                    "content": record["content"][:100],
+                }
+                async for record in node_result
+            ]
+
+            # Get all relationships between those nodes
+            edge_result = await session.run(
+                "MATCH (a)-[r]->(b) "
+                "WHERE NOT a:CachedDigest AND NOT b:CachedDigest "
+                "RETURN elementId(a) AS source, elementId(b) AS target, type(r) AS type "
+                "LIMIT 500"
+            )
+            edges = [
+                {
+                    "source": record["source"],
+                    "target": record["target"],
+                    "type": record["type"],
+                }
+                async for record in edge_result
+            ]
+
+        return {"nodes": nodes, "edges": edges}
