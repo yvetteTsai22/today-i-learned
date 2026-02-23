@@ -79,12 +79,14 @@ class StatsService:
                 async for record in node_result
             ]
 
-            # Get all relationships between those nodes
+            # Get relationships only between the fetched nodes
+            node_ids = [n["id"] for n in nodes]
             edge_result = await session.run(
                 "MATCH (a)-[r]->(b) "
-                "WHERE NOT a:CachedDigest AND NOT b:CachedDigest "
+                "WHERE elementId(a) IN $node_ids AND elementId(b) IN $node_ids "
                 "RETURN elementId(a) AS source, elementId(b) AS target, type(r) AS type "
-                "LIMIT 500"
+                "LIMIT 500",
+                node_ids=node_ids,
             )
             edges = [
                 {
