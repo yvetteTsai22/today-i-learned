@@ -3,7 +3,11 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ChevronDown, Clock, FileText, Globe, Bot, Monitor } from 'lucide-react';
+import { ChevronDown, Clock, FileText, Globe, Bot, Monitor, Pencil, Trash2, X, Check, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
+import { updateNote, deleteNote } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 type NoteSource = 'manual' | 'notion' | 'agent' | 'ui';
@@ -21,6 +25,8 @@ interface NoteCardProps {
   note: Note;
   defaultExpanded?: boolean;
   className?: string;
+  onUpdated?: (note: Note) => void;
+  onDeleted?: (id: string) => void;
 }
 
 const SOURCE_CONFIG: Record<NoteSource, { label: string; icon: typeof FileText; className: string }> = {
@@ -212,8 +218,45 @@ function renderInlineFormatting(text: string): React.ReactNode {
   return parts.length === 1 ? parts[0] : parts;
 }
 
-export function NoteCard({ note, defaultExpanded = false, className }: NoteCardProps) {
+export function NoteCard({ note, defaultExpanded = false, className, onUpdated, onDeleted }: NoteCardProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(note.content);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const handleSave = async () => {
+    if (!editContent.trim()) return;
+    setIsSaving(true);
+    try {
+      const updated = await updateNote(note.id, {
+        content: editContent.trim(),
+        tags: note.tags,
+      });
+      toast.success('Note updated');
+      setIsEditing(false);
+      onUpdated?.({ ...note, content: updated.content, tags: updated.tags, updated_at: updated.updated_at });
+    } catch {
+      toast.error('Failed to update note');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteNote(note.id);
+      toast.success('Note deleted');
+      onDeleted?.(note.id);
+    } catch {
+      toast.error('Failed to delete note');
+    } finally {
+      setIsDeleting(false);
+      setConfirmDelete(false);
+    }
+  };
 
   const sourceConfig = SOURCE_CONFIG[note.source];
   const SourceIcon = sourceConfig.icon;
@@ -271,15 +314,24 @@ export function NoteCard({ note, defaultExpanded = false, className }: NoteCardP
             isExpanded ? 'max-h-[2000px]' : 'max-h-24'
           )}
         >
-          <div className="prose-sm">
-            {isExpanded ? renderContent(note.content) : (
-              <p className="text-sm text-muted-foreground leading-relaxed">{preview}</p>
-            )}
-          </div>
+          {isEditing ? (
+            <Textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              className="min-h-[150px] resize-none text-sm"
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <div className="prose-sm">
+              {isExpanded ? renderContent(note.content) : (
+                <p className="text-sm text-muted-foreground leading-relaxed">{preview}</p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Expand/Collapse indicator */}
-        {needsExpansion && (
+        {needsExpansion && !isEditing && (
           <div
             className={cn(
               'flex items-center justify-center mt-2 pt-2 border-t border-border/50',
@@ -296,6 +348,77 @@ export function NoteCard({ note, defaultExpanded = false, className }: NoteCardP
             <span className="ml-1">{isExpanded ? 'Show less' : 'Show more'}</span>
           </div>
         )}
+
+        {/* Actions */}
+        <div
+          className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {isEditing ? (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => { setIsEditing(false); setEditContent(note.content); }}
+                disabled={isSaving}
+                className="cursor-pointer"
+              >
+                <X className="h-3 w-3 mr-1" /> Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSave}
+                disabled={isSaving || !editContent.trim()}
+                className="cursor-pointer"
+              >
+                {isSaving ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Check className="h-3 w-3 mr-1" />}
+                Save
+              </Button>
+            </>
+          ) : confirmDelete ? (
+            <>
+              <span className="text-xs text-destructive">Delete this note?</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setConfirmDelete(false)}
+                disabled={isDeleting}
+                className="cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="cursor-pointer"
+              >
+                {isDeleting ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Trash2 className="h-3 w-3 mr-1" />}
+                Confirm
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => { setIsEditing(true); setIsExpanded(true); }}
+                className="cursor-pointer"
+              >
+                <Pencil className="h-3 w-3 mr-1" /> Edit
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setConfirmDelete(true)}
+                className="text-destructive hover:text-destructive cursor-pointer"
+              >
+                <Trash2 className="h-3 w-3 mr-1" /> Delete
+              </Button>
+            </>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
