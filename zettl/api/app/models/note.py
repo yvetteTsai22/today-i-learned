@@ -17,6 +17,11 @@ class NoteCreate(BaseModel):
     source_reference: str | None = Field(default=None, description="External reference ID")
 
 
+class NoteUpdate(BaseModel):
+    content: str = Field(..., min_length=1, description="Updated note content")
+    tags: list[str] = Field(default_factory=list, description="Updated tags")
+
+
 class NoteResponse(BaseModel):
     id: str
     content: str
