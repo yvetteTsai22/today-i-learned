@@ -144,6 +144,73 @@ class CogneeService:
 
         return [self._parse_chunk_result(r) for r in results]
 
+    async def update_note(
+        self,
+        note_id: str,
+        content: str,
+        metadata: dict | None = None,
+        dataset_name: str | None = None,
+    ) -> bool:
+        """
+        Update a note by removing old chunks and re-adding with new content.
+
+        Cognee doesn't support in-place updates, so we delete and re-add.
+        """
+        dataset = dataset_name or self.DEFAULT_DATASET
+
+        # Remove old chunks for this note from Neo4j
+        from app.config import get_settings
+        from neo4j import AsyncGraphDatabase
+
+        settings = get_settings()
+        driver = AsyncGraphDatabase.driver(
+            settings.neo4j_uri,
+            auth=(settings.neo4j_user, settings.neo4j_password),
+        )
+        async with driver.session() as session:
+            await session.run(
+                "MATCH (n:DocumentChunk) "
+                "WHERE n.id = $note_id OR elementId(n) = $note_id "
+                "DETACH DELETE n",
+                note_id=note_id,
+            )
+        await driver.close()
+
+        # Re-add with new content
+        enriched_content = content
+        if metadata:
+            meta_str = " | ".join(f"{k}: {v}" for k, v in metadata.items())
+            enriched_content = f"[{meta_str}]\n{content}"
+
+        await cognee.add([enriched_content], dataset_name=dataset)
+        await cognee.cognify([dataset])
+
+        return True
+
+    async def delete_note(
+        self,
+        note_id: str,
+    ) -> bool:
+        """Delete a note and its chunks from Neo4j."""
+        from app.config import get_settings
+        from neo4j import AsyncGraphDatabase
+
+        settings = get_settings()
+        driver = AsyncGraphDatabase.driver(
+            settings.neo4j_uri,
+            auth=(settings.neo4j_user, settings.neo4j_password),
+        )
+        async with driver.session() as session:
+            await session.run(
+                "MATCH (n:DocumentChunk) "
+                "WHERE n.id = $note_id OR elementId(n) = $note_id "
+                "DETACH DELETE n",
+                note_id=note_id,
+            )
+        await driver.close()
+
+        return True
+
     async def get_notes_in_range(
         self,
         start_date: datetime,
