@@ -18,6 +18,7 @@ import {
   ContentGenerationResponse,
   ContentFormat,
 } from '@/lib/api';
+import { MarkdownContent } from '@/components/markdown-content';
 import {
   Sparkles,
   Calendar,
@@ -211,8 +212,8 @@ function TopicCard({ topic, onGenerateContent }: TopicCardProps) {
                         )}
                       </Button>
                     </div>
-                    <div className="bg-card border rounded-lg p-4 text-sm whitespace-pre-wrap max-h-60 overflow-y-auto">
-                      {content}
+                    <div className="bg-card border rounded-lg p-4 max-h-80 overflow-y-auto">
+                      <MarkdownContent content={content} />
                     </div>
                   </div>
                 );
