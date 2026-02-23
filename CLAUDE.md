@@ -6,6 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Zettl is a personal knowledge management system that ingests notes, stores them in a Neo4j graph database with Zettelkasten-style auto-linking via Cognee, and generates weekly content digests in multiple formats (blog, LinkedIn, X thread, video script).
 
+## Tool Paths
+
+In sandboxed shell environments, Homebrew binaries may not be on `$PATH`. Use full paths:
+- **uv:** `/opt/homebrew/bin/uv`
+- **npm:** `/opt/homebrew/bin/npm`
+- **node:** `/opt/homebrew/bin/node`
+
 ## Commands
 
 ### Full Stack (Docker)
