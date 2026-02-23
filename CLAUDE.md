@@ -47,11 +47,12 @@ zettl/
 │   ├── app/
 │   │   ├── main.py         # App entrypoint, Cognee config, CORS
 │   │   ├── config.py       # Pydantic settings from .env
-│   │   ├── routers/        # notes.py (CRUD /notes, /search), digest.py (/digest, /digest/content)
+│   │   ├── routers/        # notes.py (CRUD /notes, /search), digest.py (/digest, /digest/content), stats.py (/stats)
 │   │   ├── services/
 │   │   │   ├── cognee_service.py       # Knowledge graph ops: add_note, search
 │   │   │   ├── llm_service.py          # Content generation via LiteLLM
-│   │   │   └── digest_cache_service.py # Weekly digest caching in Neo4j
+│   │   │   ├── digest_cache_service.py # Weekly digest caching in Neo4j
+│   │   │   └── stats_service.py        # Dashboard KPI queries from Neo4j
 │   │   └── models/         # Pydantic models for notes, digest, content
 │   └── tests/              # pytest + dependency overrides for mocking
 ├── mcp-server/             # MCP server (wraps API for Claude Code)
@@ -61,12 +62,17 @@ zettl/
 │   └── tests/              # anyio + mock-based tests
 ├── ui/                     # Next.js frontend (App Router, dashboard layout)
 │   ├── app/
-│   │   ├── page.tsx        # Dashboard home (stats, graph widget, activity feed)
+│   │   ├── layout.tsx       # Root layout: TopBar + CommandPalette + Toaster
+│   │   ├── page.tsx         # Dashboard home (live stats, quick actions, placeholders)
 │   │   ├── capture/page.tsx # Note capture form
 │   │   ├── search/page.tsx  # Knowledge search
 │   │   └── digest/page.tsx  # Weekly digest + content generation
-│   ├── components/         # shadcn/ui + command palette, graph widget, note cards
-│   └── lib/api.ts          # API client
+│   ├── components/
+│   │   ├── top-bar.tsx      # Fixed top bar: logo, Cmd+K trigger, ThemeSwitcher
+│   │   ├── command-palette.tsx # Cmd+K palette: navigation, appearance, color themes
+│   │   ├── dashboard.tsx    # Dashboard stats cards, quick actions, placeholders
+│   │   └── ...              # shadcn/ui components, capture-form, search-form, etc.
+│   └── lib/api.ts           # API client (notes, search, digest, stats)
 ├── extension/              # Browser extension (Chrome/Firefox) — planned
 │   ├── manifest.json       # Manifest V3
 │   ├── popup/              # Capture popup UI
@@ -117,7 +123,7 @@ Copy `zettl/.env.example` to `zettl/.env`. Key variables:
 | `/digest` | POST | Generate weekly summary + topic suggestions (cached per week; `?force_refresh=true` to bypass) | Implemented |
 | `/digest/content` | POST | Generate content drafts for a topic | Implemented |
 | `/graph` | GET | Return nodes + edges for graph visualization | Planned |
-| `/stats` | GET | Return KPI data (note count, topics, connections) | Planned |
+| `/stats` | GET | Return KPI data (note count, topics, connections, this week) | Implemented |
 | `/activity` | GET | Return recent activity timeline | Planned |
 | `/auth/register` | POST | User registration | Planned |
 | `/auth/login` | POST | User authentication | Planned |
