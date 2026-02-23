@@ -14,6 +14,8 @@ def mock_cognee_service():
     mock.search = AsyncMock(return_value=[
         {"id": "r1", "content": "result text", "source": "manual", "tags": [], "created_at": "2026-02-18T12:00:00"}
     ])
+    mock.update_note = AsyncMock(return_value=True)
+    mock.delete_note = AsyncMock(return_value=True)
     return mock
 
 
@@ -77,3 +79,40 @@ def test_create_note_invalidates_digest_cache(client, mock_cache_service):
     )
     assert response.status_code == 201
     mock_cache_service.invalidate_current_week.assert_called_once()
+
+
+def test_update_note_returns_200(client):
+    response = client.put(
+        "/notes/note-123",
+        json={"content": "Updated content", "tags": ["updated"]}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["content"] == "Updated content"
+    assert "updated" in data["tags"]
+
+
+def test_update_note_empty_content_returns_422(client):
+    response = client.put(
+        "/notes/note-123",
+        json={"content": ""}
+    )
+    assert response.status_code == 422
+
+
+def test_update_note_invalidates_digest_cache(client, mock_cache_service):
+    client.put(
+        "/notes/note-123",
+        json={"content": "Updated content"}
+    )
+    mock_cache_service.invalidate_current_week.assert_called()
+
+
+def test_delete_note_returns_204(client):
+    response = client.delete("/notes/note-123")
+    assert response.status_code == 204
+
+
+def test_delete_note_invalidates_digest_cache(client, mock_cache_service):
+    client.delete("/notes/note-123")
+    mock_cache_service.invalidate_current_week.assert_called()
