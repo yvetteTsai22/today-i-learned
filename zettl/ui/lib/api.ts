@@ -142,3 +142,22 @@ export async function generateContent(
 
   return response.json();
 }
+
+// Stats
+
+export interface StatsResponse {
+  notes: number;
+  topics: number;
+  connections: number;
+  this_week: number;
+}
+
+export async function fetchStats(): Promise<StatsResponse> {
+  const response = await fetch(`${API_URL}/stats`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch stats: ${response.statusText}`);
+  }
+
+  return response.json();
+}

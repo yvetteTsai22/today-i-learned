@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from app.config import get_settings
 from app.routers.notes import router as notes_router
 from app.routers.digest import router as digest_router
+from app.routers.stats import router as stats_router
 
 
 @asynccontextmanager
@@ -36,7 +37,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
+        "http://localhost:3001",
         "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -46,6 +49,7 @@ app.add_middleware(
 # Include routers
 app.include_router(notes_router, tags=["notes"])
 app.include_router(digest_router, tags=["digest"])
+app.include_router(stats_router, tags=["stats"])
 
 
 @app.get("/health")
