@@ -49,10 +49,16 @@ zettl/
 │   │   ├── config.py       # Pydantic settings from .env
 │   │   ├── routers/        # notes.py (POST /notes, /search), digest.py (POST /digest, /digest/content)
 │   │   ├── services/
-│   │   │   ├── cognee_service.py   # Knowledge graph ops: add_note, search
-│   │   │   └── llm_service.py      # Content generation via LiteLLM
+│   │   │   ├── cognee_service.py       # Knowledge graph ops: add_note, search
+│   │   │   ├── llm_service.py          # Content generation via LiteLLM
+│   │   │   └── digest_cache_service.py # Weekly digest caching in Neo4j
 │   │   └── models/         # Pydantic models for notes, digest, content
 │   └── tests/              # pytest + dependency overrides for mocking
+├── mcp-server/             # MCP server (wraps API for Claude Code)
+│   ├── src/zettl_mcp/
+│   │   ├── server.py       # FastMCP tools: add_note, search_knowledge, generate_digest, generate_content
+│   │   └── client.py       # Async HTTP client for Zettl API
+│   └── tests/              # anyio + mock-based tests
 ├── ui/                     # Next.js frontend (App Router)
 │   ├── app/
 │   │   ├── page.tsx        # Home
@@ -92,8 +98,18 @@ Copy `zettl/.env.example` to `zettl/.env`. Key variables:
 
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
-| `/notes` | POST | Add note to knowledge graph |
+| `/notes` | POST | Add note to knowledge graph (invalidates digest cache) |
 | `/search` | POST | Semantic search (`graph_completion` or `chunks`) |
-| `/digest` | POST | Generate weekly summary + topic suggestions |
+| `/digest` | POST | Generate weekly summary + topic suggestions (cached per week; `?force_refresh=true` to bypass) |
 | `/digest/content` | POST | Generate content drafts for a topic |
 | `/health` | GET | Health check |
+
+## Cross-Layer Changes
+
+When modifying API endpoint signatures (new params, changed responses), update all consumers:
+
+1. **API router** (`zettl/api/app/routers/`) — endpoint definition + tests
+2. **MCP client** (`zettl/mcp-server/src/zettl_mcp/client.py`) — HTTP wrapper + tests
+3. **MCP server** (`zettl/mcp-server/src/zettl_mcp/server.py`) — tool definition + tests
+4. **UI API client** (`zettl/ui/lib/api.ts`) — fetch wrapper
+5. **UI components** (`zettl/ui/components/`) — component calling the API function
