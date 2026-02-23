@@ -194,3 +194,32 @@ export async function fetchStats(): Promise<StatsResponse> {
 
   return response.json();
 }
+
+// Graph
+
+export interface GraphNode {
+  id: string;
+  label: string;
+  content: string;
+}
+
+export interface GraphEdge {
+  source: string;
+  target: string;
+  type: string;
+}
+
+export interface GraphResponse {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+}
+
+export async function fetchGraph(): Promise<GraphResponse> {
+  const response = await fetch(`${API_URL}/graph`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch graph: ${response.statusText}`);
+  }
+
+  return response.json();
+}
