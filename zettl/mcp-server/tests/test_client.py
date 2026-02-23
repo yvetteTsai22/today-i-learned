@@ -141,7 +141,31 @@ async def test_generate_digest_success():
 
         assert result["summary"] == "Weekly summary"
         assert len(result["suggested_topics"]) == 1
-        mock_post.assert_called_once_with("/digest")
+        mock_post.assert_called_once_with("/digest", timeout=120.0, params={})
+
+
+@pytest.mark.anyio
+async def test_generate_digest_force_refresh():
+    """Client passes force_refresh query param when requested."""
+    client = ZettlClient(base_url="http://test:8000")
+
+    with patch.object(client._http, "post") as mock_post:
+        mock_response = MagicMock()
+        mock_response.status_code = 201
+        mock_response.json.return_value = {
+            "id": "digest-456",
+            "summary": "Fresh summary",
+            "suggested_topics": [],
+        }
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        result = await client.generate_digest(force_refresh=True)
+
+        assert result["summary"] == "Fresh summary"
+        mock_post.assert_called_once_with(
+            "/digest", timeout=120.0, params={"force_refresh": "true"}
+        )
 
 
 @pytest.mark.anyio
@@ -171,3 +195,31 @@ async def test_generate_content_success():
         assert "linkedin" in result
         call_kwargs = mock_post.call_args
         assert call_kwargs[0][0] == "/digest/content"
+
+
+@pytest.mark.anyio
+async def test_timeout_uses_default_for_health_check():
+    """Health check uses the default 30s timeout."""
+    client = ZettlClient(base_url="http://test:8000")
+
+    with patch.object(client._http, "get") as mock_get:
+        mock_get.side_effect = httpx.TimeoutException("timed out")
+
+        with pytest.raises(ZettlAPIError) as exc_info:
+            await client.health_check()
+
+        assert "timeout after 30s" in str(exc_info.value)
+
+
+@pytest.mark.anyio
+async def test_timeout_uses_long_timeout_for_add_note():
+    """add_note uses the longer 120s timeout for cognify processing."""
+    client = ZettlClient(base_url="http://test:8000")
+
+    with patch.object(client._http, "post") as mock_post:
+        mock_post.side_effect = httpx.TimeoutException("timed out")
+
+        with pytest.raises(ZettlAPIError) as exc_info:
+            await client.add_note(content="Test note")
+
+        assert "timeout after 120s" in str(exc_info.value)
