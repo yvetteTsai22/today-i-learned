@@ -16,6 +16,16 @@ export function SearchForm() {
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
+  const handleNoteUpdated = (updated: { id: string; content: string; tags: string[] }) => {
+    setResults((prev) =>
+      prev.map((r) => (r.id === updated.id ? { ...r, content: updated.content, tags: updated.tags } : r))
+    );
+  };
+
+  const handleNoteDeleted = (id: string) => {
+    setResults((prev) => prev.filter((r) => r.id !== id));
+  };
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
@@ -149,8 +159,10 @@ export function SearchForm() {
                     source: result.source,
                     tags: result.tags,
                     created_at: result.created_at,
-                    updated_at: result.created_at, // Use created_at as fallback
+                    updated_at: result.created_at,
                   }}
+                  onUpdated={handleNoteUpdated}
+                  onDeleted={handleNoteDeleted}
                 />
               ))}
             </div>
