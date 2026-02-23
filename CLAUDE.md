@@ -47,7 +47,7 @@ zettl/
 │   ├── app/
 │   │   ├── main.py         # App entrypoint, Cognee config, CORS
 │   │   ├── config.py       # Pydantic settings from .env
-│   │   ├── routers/        # notes.py (POST /notes, /search), digest.py (POST /digest, /digest/content)
+│   │   ├── routers/        # notes.py (CRUD /notes, /search), digest.py (/digest, /digest/content)
 │   │   ├── services/
 │   │   │   ├── cognee_service.py       # Knowledge graph ops: add_note, search
 │   │   │   ├── llm_service.py          # Content generation via LiteLLM
@@ -59,14 +59,26 @@ zettl/
 │   │   ├── server.py       # FastMCP tools: add_note, search_knowledge, generate_digest, generate_content
 │   │   └── client.py       # Async HTTP client for Zettl API
 │   └── tests/              # anyio + mock-based tests
-├── ui/                     # Next.js frontend (App Router)
+├── ui/                     # Next.js frontend (App Router, dashboard layout)
 │   ├── app/
-│   │   ├── page.tsx        # Home
-│   │   └── capture/page.tsx # Note capture form
-│   ├── components/         # shadcn/ui components + capture-form.tsx
+│   │   ├── page.tsx        # Dashboard home (stats, graph widget, activity feed)
+│   │   ├── capture/page.tsx # Note capture form
+│   │   ├── search/page.tsx  # Knowledge search
+│   │   └── digest/page.tsx  # Weekly digest + content generation
+│   ├── components/         # shadcn/ui + command palette, graph widget, note cards
 │   └── lib/api.ts          # API client
+├── extension/              # Browser extension (Chrome/Firefox) — planned
+│   ├── manifest.json       # Manifest V3
+│   ├── popup/              # Capture popup UI
+│   └── background/         # Context menu + API calls
 └── docker-compose.yml      # Neo4j, API, UI orchestration
 ```
+
+### UI Architecture
+
+Navigation uses a **command palette (Cmd+K)** instead of sidebar/tabs — minimal top strip with logo, search hint, and theme toggle. See `docs/plans/2026-02-23-ui-design-vision.md` for full design spec.
+
+**Input channels:** Desktop web UI, browser extension (context menu + popup), iOS/Android shortcut (API call).
 
 ## Key Patterns
 
@@ -96,13 +108,18 @@ Copy `zettl/.env.example` to `zettl/.env`. Key variables:
 
 ## API Endpoints
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/notes` | POST | Add note to knowledge graph (invalidates digest cache) |
-| `/search` | POST | Semantic search (`graph_completion` or `chunks`) |
-| `/digest` | POST | Generate weekly summary + topic suggestions (cached per week; `?force_refresh=true` to bypass) |
-| `/digest/content` | POST | Generate content drafts for a topic |
-| `/health` | GET | Health check |
+| Endpoint | Method | Purpose | Status |
+|----------|--------|---------|--------|
+| `/notes` | POST | Add note to knowledge graph (invalidates digest cache) | Implemented |
+| `/notes/{id}` | PUT | Update existing note | Planned |
+| `/notes/{id}` | DELETE | Delete note from graph | Planned |
+| `/search` | POST | Semantic search (`graph_completion` or `chunks`) | Implemented |
+| `/digest` | POST | Generate weekly summary + topic suggestions (cached per week; `?force_refresh=true` to bypass) | Implemented |
+| `/digest/content` | POST | Generate content drafts for a topic | Implemented |
+| `/graph` | GET | Return nodes + edges for graph visualization | Planned |
+| `/stats` | GET | Return KPI data (note count, topics, connections) | Planned |
+| `/activity` | GET | Return recent activity timeline | Planned |
+| `/health` | GET | Health check | Implemented |
 
 ## Cross-Layer Changes
 
@@ -113,3 +130,4 @@ When modifying API endpoint signatures (new params, changed responses), update a
 3. **MCP server** (`zettl/mcp-server/src/zettl_mcp/server.py`) — tool definition + tests
 4. **UI API client** (`zettl/ui/lib/api.ts`) — fetch wrapper
 5. **UI components** (`zettl/ui/components/`) — component calling the API function
+6. **Browser extension** (`zettl/extension/`) — if the endpoint is used by the extension (notes, auth)
