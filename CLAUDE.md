@@ -119,6 +119,9 @@ Copy `zettl/.env.example` to `zettl/.env`. Key variables:
 | `/graph` | GET | Return nodes + edges for graph visualization | Planned |
 | `/stats` | GET | Return KPI data (note count, topics, connections) | Planned |
 | `/activity` | GET | Return recent activity timeline | Planned |
+| `/auth/register` | POST | User registration | Planned |
+| `/auth/login` | POST | User authentication | Planned |
+| `/users/me` | GET | Current user profile | Planned |
 | `/health` | GET | Health check | Implemented |
 
 ## Cross-Layer Changes
