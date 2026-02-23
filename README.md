@@ -59,6 +59,7 @@ graph TB
 - **Weekly Digests** — AI-generated summaries of your week's learnings with topic suggestions
 - **Content Generation** — Draft content in 4 formats: blog, LinkedIn, X thread, video script
 - **Graph Visualization** — Interactive knowledge graph widget on the dashboard
+- **User Management** (planned) — Authentication, profiles, and multi-tenant data isolation
 
 ## UI
 
