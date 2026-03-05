@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Literal
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 
 from app.services.stats_service import StatsService
@@ -35,6 +37,17 @@ class GraphResponse(BaseModel):
     edges: list[GraphEdge]
 
 
+class ActivityItem(BaseModel):
+    type: Literal["note", "search", "digest"]
+    label: str
+    timestamp: str
+    preview: str | None = None
+
+
+class ActivityResponse(BaseModel):
+    items: list[ActivityItem]
+
+
 @router.get("/stats", response_model=StatsResponse)
 async def get_stats(
     stats_service: StatsService = Depends(get_stats_service),
@@ -60,4 +73,20 @@ async def get_graph(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to fetch graph: {str(e)}",
+        )
+
+
+@router.get("/activity", response_model=ActivityResponse)
+async def get_activity(
+    limit: int = Query(default=20, ge=1, le=100),
+    stats_service: StatsService = Depends(get_stats_service),
+):
+    """Return recent activity timeline for the dashboard."""
+    try:
+        items = await stats_service.get_activity(limit=limit)
+        return ActivityResponse(items=[ActivityItem(**item) for item in items])
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch activity: {str(e)}",
         )
