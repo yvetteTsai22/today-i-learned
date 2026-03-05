@@ -17,3 +17,5 @@ node_modules/
 .claude/
 .codex/
 docs/plans/*.md
+_bmad-output/*
+tmp/*
