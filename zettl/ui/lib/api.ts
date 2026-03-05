@@ -223,3 +223,28 @@ export async function fetchGraph(): Promise<GraphResponse> {
 
   return response.json();
 }
+
+// Activity Feed
+
+export type ActivityEventType = 'note' | 'search' | 'digest';
+
+export interface ActivityItem {
+  type: ActivityEventType;
+  label: string;
+  timestamp: string;
+  preview?: string | null;
+}
+
+export interface ActivityResponse {
+  items: ActivityItem[];
+}
+
+export async function fetchActivity(limit = 20): Promise<ActivityResponse> {
+  const response = await fetch(`${API_URL}/activity?limit=${limit}`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch activity: ${response.statusText}`);
+  }
+
+  return response.json();
+}
