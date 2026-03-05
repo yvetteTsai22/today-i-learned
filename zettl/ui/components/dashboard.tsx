@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 import { fetchStats, type StatsResponse } from "@/lib/api"
 import { KnowledgeGraph } from "@/components/knowledge-graph"
+import { ActivityFeed } from "@/components/activity-feed"
 
 function StatCard({
   label,
@@ -115,16 +116,12 @@ export function Dashboard() {
         </div>
       </section>
 
-      {/* Activity Feed placeholder */}
+      {/* Activity Feed */}
       <section>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
           Recent Activity
         </h2>
-        <div className="rounded-xl border bg-card p-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            Activity feed will appear here once the /activity endpoint is implemented.
-          </p>
-        </div>
+        <ActivityFeed />
       </section>
 
       {/* Knowledge Graph */}
