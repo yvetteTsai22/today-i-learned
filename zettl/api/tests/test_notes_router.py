@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock, MagicMock
 
 from app.main import app
-from app.routers.notes import get_cognee_service, get_digest_cache_service
+from app.routers.notes import get_cognee_service, get_digest_cache_service, get_search_cache_service
 
 
 @pytest.fixture
@@ -28,10 +28,20 @@ def mock_cache_service():
 
 
 @pytest.fixture
-def client(mock_cognee_service, mock_cache_service):
+def mock_search_cache_service():
+    """Create a mock SearchCacheService (cache miss by default)."""
+    mock = MagicMock()
+    mock.get_cached_search = AsyncMock(return_value=None)
+    mock.store_search = AsyncMock()
+    return mock
+
+
+@pytest.fixture
+def client(mock_cognee_service, mock_cache_service, mock_search_cache_service):
     """Create test client with mocked CogneeService."""
     app.dependency_overrides[get_cognee_service] = lambda: mock_cognee_service
     app.dependency_overrides[get_digest_cache_service] = lambda: mock_cache_service
+    app.dependency_overrides[get_search_cache_service] = lambda: mock_search_cache_service
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
@@ -116,3 +126,32 @@ def test_delete_note_returns_204(client):
 def test_delete_note_invalidates_digest_cache(client, mock_cache_service):
     client.delete("/notes/note-123")
     mock_cache_service.invalidate_current_week.assert_called()
+
+
+def test_search_hit_returns_cached_results_without_calling_cognee(
+    client, mock_cognee_service, mock_search_cache_service
+):
+    cached_results = [
+        {"id": "c1", "content": "cached result", "source": "manual", "tags": ["cache"], "created_at": "2026-03-01T10:00:00"}
+    ]
+    mock_search_cache_service.get_cached_search = AsyncMock(return_value=cached_results)
+
+    response = client.post("/search", json={"query": "test query"})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["results"][0]["content"] == "cached result"
+    assert data["results"][0]["id"] == "c1"
+    mock_cognee_service.search.assert_not_called()
+
+
+def test_search_miss_calls_cognee_and_stores_cache(
+    client, mock_cognee_service, mock_search_cache_service
+):
+    mock_search_cache_service.get_cached_search = AsyncMock(return_value=None)
+
+    response = client.post("/search", json={"query": "test query"})
+
+    assert response.status_code == 200
+    mock_cognee_service.search.assert_called_once()
+    mock_search_cache_service.store_search.assert_called_once()
