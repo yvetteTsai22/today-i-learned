@@ -78,7 +78,7 @@ async def test_get_cached_search_normalizes_query(mock_agd):
     service = SearchCacheService()
     await service.get_cached_search("  My Query  ")
 
-    params = session.run.call_args[1]
+    params = session.run.call_args[1]["parameters"]
     assert params["query"] == "my query"
 
 
@@ -98,7 +98,7 @@ async def test_store_search_writes_node_with_expiry(mock_agd):
     assert "MERGE" in query_arg
     assert "CachedSearch" in query_arg
 
-    params = session.run.call_args[1]
+    params = session.run.call_args[1]["parameters"]
     assert params["query"] == "my query"
     assert params["results_json"] == json.dumps(results)
     assert "created_at" in params
@@ -123,7 +123,7 @@ async def test_store_search_truncates_preview_to_80_chars(mock_agd):
     service = SearchCacheService()
     await service.store_search("query", results)
 
-    params = session.run.call_args[1]
+    params = session.run.call_args[1]["parameters"]
     assert len(params["preview"]) == 80
     assert params["preview"] == "A" * 80
 
@@ -138,5 +138,5 @@ async def test_store_search_empty_results_uses_empty_preview(mock_agd):
     service = SearchCacheService()
     await service.store_search("query", [])
 
-    params = session.run.call_args[1]
+    params = session.run.call_args[1]["parameters"]
     assert params["preview"] == ""
