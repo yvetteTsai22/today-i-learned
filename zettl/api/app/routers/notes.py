@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from datetime import datetime
 
 from app.models.note import NoteCreate, NoteResponse, NoteSource, NoteUpdate
 from app.services.cognee_service import CogneeService
 from app.services.digest_cache_service import DigestCacheService
+from app.services.search_cache_service import SearchCacheService
 
 router = APIRouter()
 
@@ -17,6 +18,11 @@ def get_cognee_service() -> CogneeService:
 def get_digest_cache_service() -> DigestCacheService:
     """Dependency for DigestCacheService."""
     return DigestCacheService()
+
+
+def get_search_cache_service() -> SearchCacheService:
+    """Dependency for SearchCacheService."""
+    return SearchCacheService()
 
 
 class SearchRequest(BaseModel):
@@ -82,17 +88,28 @@ async def create_note(
 @router.post("/search", response_model=SearchResponse)
 async def search_notes(
     request: SearchRequest,
-    cognee_service: CogneeService = Depends(get_cognee_service)
+    background_tasks: BackgroundTasks,
+    cognee_service: CogneeService = Depends(get_cognee_service),
+    search_cache: SearchCacheService = Depends(get_search_cache_service),
 ):
     """
     Search the knowledge graph.
     """
     try:
+        cached = await search_cache.get_cached_search(request.query, request.search_type)
+        if cached is not None:
+            return SearchResponse(
+                results=[SearchResultItem(**r) for r in cached],
+                query=request.query,
+            )
+
         chunk_results = await cognee_service.search(
             query=request.query,
             search_type=request.search_type
         )
         results = [SearchResultItem(**chunk) for chunk in chunk_results]
+        results_dicts = [r.model_dump(mode="json") for r in results]
+        background_tasks.add_task(search_cache.store_search, request.query, results_dicts, request.search_type)
         return SearchResponse(results=results, query=request.query)
     except Exception as e:
         raise HTTPException(
