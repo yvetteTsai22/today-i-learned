@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from neo4j import AsyncGraphDatabase
 
@@ -65,7 +65,7 @@ class StatsService:
             # Get all nodes (limit to prevent overwhelming the UI)
             node_result = await session.run(
                 "MATCH (n) "
-                "WHERE NOT n:CachedDigest "
+                "WHERE NOT n:CachedDigest AND NOT n:CachedSearch "
                 "RETURN elementId(n) AS id, labels(n)[0] AS label, "
                 "       coalesce(n.text, n.name, n.content, '') AS content "
                 "LIMIT 200"
@@ -98,3 +98,49 @@ class StatsService:
             ]
 
         return {"nodes": nodes, "edges": edges}
+
+    async def get_activity(self, limit: int = 20) -> list[dict]:
+        """Return recent activity across notes, searches, and digests."""
+        cypher = (
+            "CALL { "
+            "  MATCH (n:DocumentChunk) "
+            "  WHERE n.created_at IS NOT NULL "
+            "  RETURN 'note' AS type, "
+            "         n.created_at AS ts, "
+            "         'Note captured' AS label_text, "
+            "         substring(coalesce(n.text, ''), 0, 80) AS preview_text "
+            "  UNION ALL "
+            "  MATCH (d:CachedDigest) "
+            "  WHERE d.created_at IS NOT NULL "
+            "  RETURN 'digest' AS type, "
+            "         d.created_at AS ts, "
+            "         'Digest generated' AS label_text, "
+            "         '' AS preview_text "
+            "  UNION ALL "
+            "  MATCH (s:CachedSearch) "
+            "  WHERE s.created_at IS NOT NULL "
+            "  RETURN 'search' AS type, "
+            "         s.created_at AS ts, "
+            "         'Searched: \"' + s.query + '\"' AS label_text, "
+            "         coalesce(s.preview, '') AS preview_text "
+            "} "
+            "RETURN type, ts, label_text, preview_text "
+            "ORDER BY ts DESC "
+            "LIMIT $limit"
+        )
+        async with self._driver.session() as session:
+            result = await session.run(cypher, limit=limit)
+            items = []
+            async for record in result:
+                ts = record["ts"]
+                if isinstance(ts, int):
+                    ts = datetime.fromtimestamp(ts / 1000, tz=timezone.utc).isoformat()
+                else:
+                    ts = str(ts) if ts is not None else ""
+                items.append({
+                    "type": record["type"],
+                    "label": record["label_text"],
+                    "timestamp": ts,
+                    "preview": record["preview_text"] if record["preview_text"] else None,
+                })
+            return items
