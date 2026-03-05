@@ -16,17 +16,17 @@ class SearchCacheService:
             auth=(settings.neo4j_user, settings.neo4j_password),
         )
 
-    async def get_cached_search(self, query: str) -> list[dict] | None:
-        """Return cached search results for query, or None if expired/missing."""
+    async def get_cached_search(self, query: str, search_type: str = "graph_completion") -> list[dict] | None:
+        """Return cached search results for query + search_type, or None if expired/missing."""
         normalized = query.strip().lower()
         cypher = (
-            "MATCH (s:CachedSearch {query: $query}) "
+            "MATCH (s:CachedSearch {query: $query, search_type: $search_type}) "
             "WHERE s.expires_at > $now "
             "RETURN s"
         )
         async with self._driver.session() as session:
             result = await session.run(
-                cypher, query=normalized, now=datetime.now().isoformat()
+                cypher, parameters={"query": normalized, "search_type": search_type, "now": datetime.now().isoformat()}
             )
             record = await result.single()
 
@@ -35,13 +35,13 @@ class SearchCacheService:
 
         return json.loads(record["s"]["results_json"])
 
-    async def store_search(self, query: str, results: list[dict]) -> None:
+    async def store_search(self, query: str, results: list[dict], search_type: str = "graph_completion") -> None:
         """Store (upsert) search results with 24-hour expiry."""
         normalized = query.strip().lower()
         now = datetime.now()
         preview = results[0]["content"][:80] if results else ""
         cypher = (
-            "MERGE (s:CachedSearch {query: $query}) "
+            "MERGE (s:CachedSearch {query: $query, search_type: $search_type}) "
             "SET s.results_json = $results_json, "
             "    s.preview = $preview, "
             "    s.created_at = $created_at, "
@@ -50,9 +50,12 @@ class SearchCacheService:
         async with self._driver.session() as session:
             await session.run(
                 cypher,
-                query=normalized,
-                results_json=json.dumps(results),
-                preview=preview,
-                created_at=now.isoformat(),
-                expires_at=(now + timedelta(hours=24)).isoformat(),
+                parameters={
+                    "query": normalized,
+                    "search_type": search_type,
+                    "results_json": json.dumps(results),
+                    "preview": preview,
+                    "created_at": now.isoformat(),
+                    "expires_at": (now + timedelta(hours=24)).isoformat(),
+                },
             )
