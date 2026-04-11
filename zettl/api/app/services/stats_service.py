@@ -28,7 +28,7 @@ class StatsService:
             # Topics (distinct non-chunk, non-cache node labels)
             result = await session.run(
                 "CALL db.labels() YIELD label "
-                "WHERE label <> 'DocumentChunk' AND label <> 'CachedDigest' "
+                "WHERE label <> 'DocumentChunk' AND label <> 'CachedDigest' AND label <> 'CachedSearch' "
                 "RETURN count(label) AS count"
             )
             record = await result.single()
