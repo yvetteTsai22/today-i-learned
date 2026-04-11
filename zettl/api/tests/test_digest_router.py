@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock, MagicMock
 
 from app.main import app
-from app.routers.digest import get_cognee_service, get_llm_service, get_digest_cache_service
+from app.routers.digest import get_cognee_service, get_llm_service, get_digest_cache_service, get_content_agent_service
 
 
 @pytest.fixture
@@ -25,10 +25,6 @@ def mock_llm_service():
             {"title": "Graph DBs", "reasoning": "Interesting pattern", "relevant_chunks": ["chunk1"]}
         ]
     })
-    mock.generate_blog_draft = AsyncMock(return_value="# Blog content")
-    mock.generate_linkedin_post = AsyncMock(return_value="LinkedIn post")
-    mock.generate_x_thread = AsyncMock(return_value="1/ Thread")
-    mock.generate_video_script = AsyncMock(return_value="[HOOK] Script")
     return mock
 
 
@@ -43,11 +39,27 @@ def mock_cache_service():
 
 
 @pytest.fixture
-def client(mock_cognee_service, mock_llm_service, mock_cache_service):
+def mock_content_agent():
+    """Create a mock ContentAgentService."""
+    from app.models.content import ContentGenerationResponse
+    mock = MagicMock()
+    mock.generate = AsyncMock(return_value=ContentGenerationResponse(
+        topic="Graph Databases",
+        blog="# Blog content",
+        linkedin="LinkedIn post",
+        x_thread="1/ Thread",
+        video_script="[HOOK] Script",
+    ))
+    return mock
+
+
+@pytest.fixture
+def client(mock_cognee_service, mock_llm_service, mock_cache_service, mock_content_agent):
     """Create test client with mocked services."""
     app.dependency_overrides[get_cognee_service] = lambda: mock_cognee_service
     app.dependency_overrides[get_llm_service] = lambda: mock_llm_service
     app.dependency_overrides[get_digest_cache_service] = lambda: mock_cache_service
+    app.dependency_overrides[get_content_agent_service] = lambda: mock_content_agent
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
@@ -121,3 +133,16 @@ def test_digest_force_refresh_bypasses_cache(client, mock_cache_service, mock_ll
     assert response.status_code == 201
     mock_llm_service.generate_digest_summary.assert_called_once()
     mock_cache_service.store_digest.assert_called_once()
+
+
+def test_generate_content_uses_agent(client, mock_content_agent):
+    response = client.post(
+        "/digest/content",
+        json={
+            "topic": "Graph Databases",
+            "source_chunks": ["chunk1"],
+            "formats": ["blog"]
+        }
+    )
+    assert response.status_code == 200
+    mock_content_agent.generate.assert_called_once()
