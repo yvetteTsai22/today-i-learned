@@ -14,6 +14,11 @@ class ChunkResult(TypedDict):
     created_at: str
 
 
+def is_cognee_no_data_error(exc: Exception) -> bool:
+    """Return True for Cognee's 'no data' errors (raised when the graph is empty)."""
+    return "NoDataError" in type(exc).__name__ or "No data found" in str(exc)
+
+
 class CogneeService:
     """Service for interacting with Cognee knowledge graph."""
 

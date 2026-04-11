@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 
 from app.models.note import NoteCreate, NoteResponse, NoteSource, NoteUpdate
-from app.services.cognee_service import CogneeService
+from app.services.cognee_service import CogneeService, is_cognee_no_data_error
 from app.services.digest_cache_service import DigestCacheService
 from app.services.search_cache_service import SearchCacheService
 
@@ -112,6 +112,8 @@ async def search_notes(
         background_tasks.add_task(search_cache.store_search, request.query, results_dicts, request.search_type)
         return SearchResponse(results=results, query=request.query)
     except Exception as e:
+        if is_cognee_no_data_error(e):
+            return SearchResponse(results=[], query=request.query)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Search failed: {str(e)}"

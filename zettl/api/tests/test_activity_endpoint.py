@@ -73,3 +73,13 @@ def test_get_activity_empty_returns_empty_list(client, mock_stats_service):
     assert response.status_code == 200
     data = response.json()
     assert data["items"] == []
+
+
+def test_get_activity_service_error_returns_500(client, mock_stats_service):
+    """AC #6: StatsService exception returns 500 with detail message."""
+    mock_stats_service.get_activity = AsyncMock(side_effect=RuntimeError("Neo4j unavailable"))
+    response = client.get("/activity")
+    assert response.status_code == 500
+    data = response.json()
+    assert "detail" in data
+    assert "activity" in data["detail"].lower()
