@@ -1,12 +1,18 @@
+import functools
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from datetime import datetime, timedelta
 import uuid
 
+logger = logging.getLogger(__name__)
+
 from app.models.digest import DigestResponse, TopicSuggestion
 from app.models.content import ContentFormat, ContentGenerationRequest, ContentGenerationResponse
-from app.services.cognee_service import CogneeService
+from app.services.cognee_service import CogneeService, is_cognee_no_data_error
 from app.services.llm_service import LLMService
 from app.services.digest_cache_service import DigestCacheService
+from app.services.content_agent import ContentAgentService
 
 router = APIRouter()
 
@@ -24,6 +30,12 @@ def get_llm_service() -> LLMService:
 def get_digest_cache_service() -> DigestCacheService:
     """Dependency for DigestCacheService."""
     return DigestCacheService()
+
+
+@functools.lru_cache(maxsize=1)
+def get_content_agent_service() -> ContentAgentService:
+    """Dependency for ContentAgentService. Cached so the LangGraph is only compiled once."""
+    return ContentAgentService()
 
 
 @router.post("/digest", response_model=DigestResponse, status_code=status.HTTP_201_CREATED)
@@ -53,10 +65,16 @@ async def create_digest(
         date_range = f"{start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
 
         # Get recent chunks from Cognee
-        chunks = await cognee_service.search(
-            query="recent learnings and insights",
-            search_type="chunks"
-        )
+        try:
+            chunks = await cognee_service.search(
+                query="recent learnings and insights",
+                search_type="chunks"
+            )
+        except Exception as e:
+            if is_cognee_no_data_error(e):
+                chunks = []
+            else:
+                raise
 
         if not chunks:
             return DigestResponse(
@@ -99,6 +117,7 @@ async def create_digest(
         return response
 
     except Exception as e:
+        logger.exception("Failed to create digest")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create digest: {str(e)}"
@@ -108,39 +127,20 @@ async def create_digest(
 @router.post("/digest/content", response_model=ContentGenerationResponse)
 async def generate_content(
     request: ContentGenerationRequest,
-    llm_service: LLMService = Depends(get_llm_service)
+    agent: ContentAgentService = Depends(get_content_agent_service),
 ):
     """
     Generate content drafts for a topic in specified formats.
+    Uses a LangGraph agent with SKILL.md-based content skills.
     """
     try:
-        result = ContentGenerationResponse(topic=request.topic)
-
-        for fmt in request.formats:
-            if fmt == ContentFormat.BLOG:
-                result.blog = await llm_service.generate_blog_draft(
-                    topic=request.topic,
-                    source_chunks=request.source_chunks
-                )
-            elif fmt == ContentFormat.LINKEDIN:
-                result.linkedin = await llm_service.generate_linkedin_post(
-                    topic=request.topic,
-                    source_chunks=request.source_chunks
-                )
-            elif fmt == ContentFormat.X_THREAD:
-                result.x_thread = await llm_service.generate_x_thread(
-                    topic=request.topic,
-                    source_chunks=request.source_chunks
-                )
-            elif fmt == ContentFormat.VIDEO_SCRIPT:
-                result.video_script = await llm_service.generate_video_script(
-                    topic=request.topic,
-                    source_chunks=request.source_chunks
-                )
-
-        return result
-
+        return await agent.generate(
+            topic=request.topic,
+            source_chunks=request.source_chunks,
+            formats=request.formats,
+        )
     except Exception as e:
+        logger.exception("Failed to generate content for topic=%s", request.topic)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate content: {str(e)}"
