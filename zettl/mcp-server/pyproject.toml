@@ -22,3 +22,8 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/zettl_mcp"]
+
+[dependency-groups]
+dev = [
+    "vulture>=2.16",
+]

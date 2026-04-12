@@ -55,7 +55,7 @@ Select a topic from your digest, pick formats, and the LangGraph content agent d
 | Weekly digest caching | ✅ |
 | Note edit / delete | ✅ |
 | Markdown + Mermaid rendering in digest output | ✅ |
-| Activity feed | 🚧 In progress |
+| Activity feed | ✅ |
 | Browser extension (Chrome) | 🔜 Planned |
 | Notion / Google Drive connectors | 🔜 Planned |
 | User authentication + multi-tenancy | 🔜 Planned |
@@ -169,8 +169,14 @@ npm run dev        # http://localhost:3000
 
 Copy `zettl/.env.example` to `zettl/.env` and set:
 
+<!-- AUTO-GENERATED from zettl/.env.example -->
 ```env
-# Neo4j
+# Neo4j (direct driver connection)
+NEO4J_URI=bolt://localhost:7687
+NEO4J_USER=neo4j
+NEO4J_PASSWORD=your-password
+
+# Cognee graph DB config (mirrors Neo4j values above)
 GRAPH_DATABASE_PROVIDER=neo4j
 GRAPH_DATABASE_URL=bolt://localhost:7687
 GRAPH_DATABASE_USERNAME=neo4j
@@ -187,10 +193,12 @@ ANTHROPIC_API_KEY=sk-ant-...
 # OPENAI_API_KEY=sk-...
 
 # Google Vertex AI (if using vertex_ai provider)
+# LLM_PROVIDER=vertex_ai
+# LLM_MODEL=gemini-1.5-pro
 # VERTEX_PROJECT=your-gcp-project
 # VERTEX_LOCATION=us-central1
-# GOOGLE_APPLICATION_CREDENTIALS=/path/to/credentials.json
 ```
+<!-- END AUTO-GENERATED -->
 
 ---
 
@@ -265,13 +273,33 @@ zettl/
 
 ## Development
 
+### Makefile commands
+
+<!-- AUTO-GENERATED from zettl/Makefile -->
+| Command | Description |
+|---------|-------------|
+| `make up` | Start stack with existing images (no rebuild) |
+| `make up-build` | Rebuild all images and start stack |
+| `make down` | Stop and remove containers |
+| `make tag` | Tag current images with branch name (e.g. `:refactor`) |
+| `make restore BRANCH=<name>` | Restore images from a branch tag back to `:latest` |
+| `make test` | Run API unit + integration tests |
+| `make e2e` | Run E2E tests against a running stack |
+| `make rebuild` | Safe rebuild: tag current branch, then rebuild |
+<!-- END AUTO-GENERATED -->
+
 ### Running tests
 
 ```bash
+# API (Python)
 cd zettl/api
 uv run pytest                            # All tests
 uv run pytest tests/test_notes_router.py # Single file
 uv run pytest --cov=app                  # With coverage
+
+# MCP server (Python)
+cd zettl/mcp-server
+uv run pytest
 ```
 
 ### Project structure conventions
@@ -325,7 +353,7 @@ That's it — the agent discovers skill files automatically.
 | `/digest/content` | POST | Generate content drafts for a topic |
 | `/stats` | GET | Dashboard KPIs (note count, topics, connections) |
 | `/graph` | GET | Graph nodes + edges for visualization |
-| `/activity` | GET | Recent activity timeline *(in progress)* |
+| `/activity` | GET | Recent activity timeline |
 | `/health` | GET | Health check |
 
 Full interactive docs at http://localhost:8000/docs when running locally.
