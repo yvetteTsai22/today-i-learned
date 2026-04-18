@@ -99,6 +99,8 @@ app = FastAPI(
 )
 
 # Configure CORS - allow frontend to call API
+# Add extra origins via EXTRA_CORS_ORIGINS env var (comma-separated), e.g. Tailscale IPs
+_extra_origins = list(filter(None, os.environ.get("EXTRA_CORS_ORIGINS", "").split(",")))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -106,6 +108,7 @@ app.add_middleware(
         "http://localhost:3001",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:3001",
+        *_extra_origins,
     ],
     allow_credentials=True,
     allow_methods=["*"],
