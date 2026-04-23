@@ -24,6 +24,13 @@ class CogneeService:
 
     DEFAULT_DATASET = "zettl_notes"
 
+    @staticmethod
+    def _enrich_content(content: str, metadata: dict | None) -> str:
+        if not metadata:
+            return content
+        meta_str = " | ".join(f"{k}: {v}" for k, v in metadata.items())
+        return f"[{meta_str}]\n{content}"
+
     async def add_note(
         self,
         content: str,
@@ -31,26 +38,22 @@ class CogneeService:
         metadata: dict | None = None
     ) -> str:
         """
-        Add a note to Cognee and process it into the knowledge graph.
+        Stage a note in Cognee's data store (fast step).
 
-        Returns the note ID.
+        Returns the note ID. Call cognify_dataset() separately as a
+        background task to process the note into the knowledge graph.
         """
         dataset = dataset_name or self.DEFAULT_DATASET
         note_id = str(uuid.uuid4())
 
-        # Prepare content with metadata
-        enriched_content = content
-        if metadata:
-            meta_str = " | ".join(f"{k}: {v}" for k, v in metadata.items())
-            enriched_content = f"[{meta_str}]\n{content}"
-
-        # Add to Cognee
-        await cognee.add([enriched_content], dataset_name=dataset)
-
-        # Process into knowledge graph
-        await cognee.cognify([dataset])
+        await cognee.add([self._enrich_content(content, metadata)], dataset_name=dataset)
 
         return note_id
+
+    async def cognify_dataset(self, dataset_name: str | None = None) -> None:
+        """Process staged notes into the knowledge graph (slow LLM step)."""
+        dataset = dataset_name or self.DEFAULT_DATASET
+        await cognee.cognify([dataset])
 
     def _parse_chunk_result(self, chunk: Any) -> ChunkResult:
         """Parse a Cognee chunk result into structured data."""
@@ -70,9 +73,9 @@ class CogneeService:
         else:
             text = str(chunk)
 
-        if hasattr(chunk, "id"):
+        if not isinstance(chunk, dict) and hasattr(chunk, "id"):
             chunk_id = str(chunk.id)
-        if hasattr(chunk, "created_at"):
+        if not isinstance(chunk, dict) and hasattr(chunk, "created_at"):
             # Handle Unix timestamp (ms)
             ts = chunk.created_at
             if isinstance(ts, (int, float)):
@@ -181,14 +184,7 @@ class CogneeService:
             )
         await driver.close()
 
-        # Re-add with new content
-        enriched_content = content
-        if metadata:
-            meta_str = " | ".join(f"{k}: {v}" for k, v in metadata.items())
-            enriched_content = f"[{meta_str}]\n{content}"
-
-        await cognee.add([enriched_content], dataset_name=dataset)
-        await cognee.cognify([dataset])
+        await cognee.add([self._enrich_content(content, metadata)], dataset_name=dataset)
 
         return True
 
@@ -221,7 +217,7 @@ class CogneeService:
         start_date: datetime,
         end_date: datetime,
         dataset_name: str | None = None
-    ) -> list[str]:
+    ) -> list[ChunkResult]:
         """
         Get notes created within a date range.
         Used for digest generation.
