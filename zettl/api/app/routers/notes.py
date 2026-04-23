@@ -1,6 +1,10 @@
+import logging
+
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 from app.models.note import NoteCreate, NoteResponse, NoteSource, NoteUpdate
 from app.services.cognee_service import CogneeService, is_cognee_no_data_error
@@ -43,14 +47,22 @@ class SearchResponse(BaseModel):
     query: str
 
 
+async def _cognify_background(cognee_service: CogneeService) -> None:
+    try:
+        await cognee_service.cognify_dataset()
+    except Exception as e:
+        logger.error("Background cognify failed: %s", e)
+
+
 @router.post("/notes", response_model=NoteResponse, status_code=status.HTTP_201_CREATED)
 async def create_note(
     note: NoteCreate,
+    background_tasks: BackgroundTasks,
     cognee_service: CogneeService = Depends(get_cognee_service),
     cache_service: DigestCacheService = Depends(get_digest_cache_service),
 ):
     """
-    Create a new note and process it into the knowledge graph.
+    Stage a note and return immediately; graph processing runs in the background.
     """
     try:
         metadata = {
@@ -65,6 +77,8 @@ async def create_note(
             content=note.content,
             metadata=metadata
         )
+
+        background_tasks.add_task(_cognify_background, cognee_service)
 
         # Invalidate cached digest since new knowledge was added
         await cache_service.invalidate_current_week()
@@ -124,13 +138,14 @@ async def search_notes(
 async def update_note(
     note_id: str,
     update: NoteUpdate,
+    background_tasks: BackgroundTasks,
     cognee_service: CogneeService = Depends(get_cognee_service),
     cache_service: DigestCacheService = Depends(get_digest_cache_service),
 ):
     """Update an existing note's content and tags."""
     try:
         metadata = {
-            "source": "ui",
+            "source": NoteSource.UI.value,
             "tags": ",".join(update.tags) if update.tags else "",
             "created_at": datetime.now().isoformat(),
         }
@@ -140,6 +155,8 @@ async def update_note(
             content=update.content,
             metadata=metadata,
         )
+
+        background_tasks.add_task(_cognify_background, cognee_service)
 
         # Invalidate digest cache
         await cache_service.invalidate_current_week()
