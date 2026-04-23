@@ -6,7 +6,7 @@ requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.109.0",
     "uvicorn[standard]>=0.27.0",
-    "cognee[neo4j]>=0.1.26",
+    "cognee[neo4j]~=1.0.2",
     "litellm[google]>=1.30.0",
     "anthropic>=0.18.0",
     "pydantic>=2.6.0",
