@@ -77,14 +77,20 @@ async def lifespan(app: FastAPI):
         "graph_database_password": settings.graph_database_password,
     })
 
-    # Explicitly configure Cognee's LLM so it doesn't rely on its own env-var detection.
-    # llm_api_key="adc" is a dummy sentinel: Cognee's CUSTOM provider requires a non-None
-    # value, but LiteLLM ignores it for vertex_ai/* models and authenticates via
-    # GOOGLE_APPLICATION_CREDENTIALS instead.
+    # Explicitly configure Cognee's LLM and embedding so it doesn't rely on its own
+    # env-var detection. api_key="adc" is a dummy sentinel: Cognee's CUSTOM provider
+    # requires a non-None value, but LiteLLM ignores it for vertex_ai/* models and
+    # authenticates via GOOGLE_APPLICATION_CREDENTIALS instead.
     cognee.config.set_llm_config({
         "llm_provider": settings.llm_provider,
         "llm_model": settings.llm_model,
         "llm_api_key": "adc",
+    })
+    cognee.config.set_embedding_config({
+        "embedding_provider": settings.embedding_provider,
+        "embedding_model": settings.embedding_model,
+        "embedding_api_key": "adc",
+        "embedding_dimensions": settings.embedding_dimensions,
     })
 
     yield
