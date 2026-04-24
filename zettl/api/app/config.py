@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     vertex_project: str | None = None
     vertex_location: str | None = None
 
+    # Embeddings
+    embedding_provider: str = "openai"
+    embedding_model: str = "text-embedding-3-large"
+    embedding_dimensions: int = 3072
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
